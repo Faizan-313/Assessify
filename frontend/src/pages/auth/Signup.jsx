@@ -86,7 +86,7 @@ function Signup() {
                         <p className="text-[#1b4242]">Join us and start your journey</p>
                     </div>
 
-                    <div className="space-y-5">
+                    <form className="space-y-5" onSubmit={handleSubmit} noValidate>
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-2">
                                 Full Name
@@ -167,8 +167,7 @@ function Signup() {
                         </div>
 
                         <button
-                            type="button"
-                            onClick={handleSubmit}
+                            type="submit"
                             className="w-full rounded-lg bg-gradient-to-r from-[#5c8374] to-[#1b4242] hover:from-[#1b4242] hover:to-[#092635] py-3 text-white font-semibold shadow-lg hover:shadow-[#5c8374]/50 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             disabled={loading}
                         >
@@ -187,7 +186,7 @@ function Signup() {
                                 </span>
                             )}
                         </button>
-                    </div>
+                    </form>
 
                     <div className="relative my-4">
                         <div className="absolute inset-0 flex items-center">
