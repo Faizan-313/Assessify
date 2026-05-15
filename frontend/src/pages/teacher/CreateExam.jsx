@@ -44,6 +44,14 @@ export default function CreateExam() {
             newQuestion.correctAnswer = 0;
         }
 
+        if (type === "text") {
+            newQuestion.referenceAnswer = "";
+        }
+
+        if (type === "code") {
+            newQuestion.referenceCode = "";
+        }
+
         setQuestions([...questions, newQuestion]);
     };
 
@@ -113,6 +121,21 @@ export default function CreateExam() {
         if (field === "type" && value !== "mcq" && updated[index].options) {
             delete updated[index].options;
             delete updated[index].correctAnswer;
+        }
+
+        if (field === "type") {
+            if (value === "text" && updated[index].referenceAnswer === undefined) {
+                updated[index].referenceAnswer = "";
+            }
+            if (value !== "text") {
+                delete updated[index].referenceAnswer;
+            }
+            if (value === "code" && updated[index].referenceCode === undefined) {
+                updated[index].referenceCode = "";
+            }
+            if (value !== "code") {
+                delete updated[index].referenceCode;
+            }
         }
 
         setQuestions(updated);
@@ -185,6 +208,14 @@ export default function CreateExam() {
                     return;
                 }
             }
+            if (questions[i].type === "text" && !questions[i].referenceAnswer?.trim()) {
+                toast.error(`Question ${i + 1} (Text) needs a reference answer for AI evaluation`);
+                return;
+            }
+            if (questions[i].type === "code" && !questions[i].referenceCode?.trim()) {
+                toast.error(`Question ${i + 1} (Code) needs a reference solution for AI evaluation`);
+                return;
+            }
         }
 
         // Prepare FormData to send as multipart/form-data so we are able to include File objects directly
@@ -201,7 +232,11 @@ export default function CreateExam() {
             type: q.type,
             questionText: q.questionText,
             marks: parseInt(q.marks),
-            ...(q.type === 'mcq' ? { options: q.options } : {}),
+            ...(q.type === 'mcq'
+                ? { options: q.options, correctOption: q.correctAnswer }
+                : {}),
+            ...(q.type === 'text' ? { referenceAnswer: q.referenceAnswer || "" } : {}),
+            ...(q.type === 'code' ? { referenceCode: q.referenceCode || "" } : {}),
             hasImage: !!q.image
         }));
 
@@ -318,6 +353,28 @@ export default function CreateExam() {
                                     </div>
                                 )
                             ))}
+                        </div>
+                    )}
+
+                    {q.type === "text" && q.referenceAnswer?.trim() && (
+                        <div className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.05] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 mb-1">
+                                Reference Answer
+                            </p>
+                            <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                {q.referenceAnswer}
+                            </p>
+                        </div>
+                    )}
+
+                    {q.type === "code" && q.referenceCode?.trim() && (
+                        <div className="mt-4 rounded-lg border border-sky-500/20 bg-sky-500/[0.05] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-sky-300 mb-1">
+                                Reference Code
+                            </p>
+                            <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono leading-relaxed overflow-auto max-h-48">
+                                {q.referenceCode}
+                            </pre>
                         </div>
                     )}
                 </div>
@@ -443,6 +500,55 @@ export default function CreateExam() {
                         </div>
                         <p className="text-xs text-violet-300/80 mt-3">
                             Select the correct answer
+                        </p>
+                    </div>
+                )}
+
+                {q.type === "text" && (
+                    <div className="bg-emerald-500/[0.06] p-4 rounded-xl border border-emerald-500/20 mb-4">
+                        <label
+                            htmlFor={`reference-answer-${index}`}
+                            className="block text-xs font-semibold text-emerald-200 mb-2 uppercase tracking-wider"
+                        >
+                            Reference Answer (used by AI auto evaluation)
+                        </label>
+                        <textarea
+                            id={`reference-answer-${index}`}
+                            placeholder="Write the ideal answer / rubric the AI should grade against..."
+                            value={q.referenceAnswer || ""}
+                            onChange={(e) =>
+                                handleQuestionChange(index, "referenceAnswer", e.target.value)
+                            }
+                            className={inputClass + " resize-none font-sans"}
+                            rows={5}
+                        />
+                        <p className="text-xs text-emerald-300/80 mt-2">
+                            The AI compares each student answer to this reference. Be specific so the grading is consistent.
+                        </p>
+                    </div>
+                )}
+
+                {q.type === "code" && (
+                    <div className="bg-sky-500/[0.06] p-4 rounded-xl border border-sky-500/20 mb-4">
+                        <label
+                            htmlFor={`reference-code-${index}`}
+                            className="block text-xs font-semibold text-sky-200 mb-2 uppercase tracking-wider"
+                        >
+                            Reference Solution Code (used by AI auto evaluation)
+                        </label>
+                        <textarea
+                            id={`reference-code-${index}`}
+                            placeholder="// Paste the canonical solution. The AI will not execute it; it grades against this reference."
+                            value={q.referenceCode || ""}
+                            onChange={(e) =>
+                                handleQuestionChange(index, "referenceCode", e.target.value)
+                            }
+                            className={inputClass + " resize-none font-mono text-sm"}
+                            rows={8}
+                            spellCheck={false}
+                        />
+                        <p className="text-xs text-sky-300/80 mt-2">
+                            Student code is not executed. The reference is used to score correctness, structure and clarity.
                         </p>
                     </div>
                 )}

@@ -46,13 +46,33 @@ const createExam = async (req, res) => {
         //Create Question Paper
         const newQuestionPaper = new QuestionPaper({
             examId: newExam._id,
-            questions: questionsParsed.map((q) => ({
-                type: q.type,
-                questionText: q.questionText,
-                marks: parseInt(q.marks),
-                options: q.options || [],
-                image: q.image || null,
-            })),
+            questions: questionsParsed.map((q) => {
+                const question = {
+                    type: q.type,
+                    questionText: q.questionText,
+                    marks: parseInt(q.marks),
+                    options: q.options || [],
+                    image: q.image || null,
+                };
+
+                const evaluationConfig = {};
+                if (q.type === "mcq" && q.correctOption != null && q.correctOption !== "") {
+                    const idx = Number(q.correctOption);
+                    if (!Number.isNaN(idx)) {
+                        evaluationConfig.correctOption = idx;
+                    }
+                }
+                if (q.type === "text" && typeof q.referenceAnswer === "string" && q.referenceAnswer.trim() !== "") {
+                    evaluationConfig.referenceAnswer = q.referenceAnswer.trim();
+                }
+                if (q.type === "code" && typeof q.referenceCode === "string" && q.referenceCode.trim() !== "") {
+                    evaluationConfig.referenceCode = q.referenceCode;
+                }
+                if (Object.keys(evaluationConfig).length > 0) {
+                    question.evaluationConfig = evaluationConfig;
+                }
+                return question;
+            }),
         });
 
         await newQuestionPaper.save();
@@ -265,6 +285,7 @@ const getExamData = async (req, res) => {
             startTime: exam.startTime,
             endTime: exam.endTime,
             questions: paper?.questions || [],
+            evaluationStatus: exam.evaluationStatus,
             createdAt: exam.createdAt,
         };
 

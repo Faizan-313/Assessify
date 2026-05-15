@@ -17,8 +17,7 @@ const generateAccessAndRefreshToken = async (user) => {
         const refreshToken = user.generateRefreshToken();
 
         user.refreshToken = refreshToken;
-        user.save({ validateBeforeSave: false })
-            .catch(console.error);
+        await user.save({ validateBeforeSave: false });
 
         return { accessToken, refreshToken };
 
@@ -129,39 +128,53 @@ const logout = async (req, res)=>{
     }
 }
 
-const refreshAccessToken = async (req, res)=>{
+const refreshAccessToken = async (req, res) => {
     try {
-        const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken
-        if(!incomingRefreshToken) {
-            return res.status(401).json({ message: "Unauthorized request" })
+        const incomingRefreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+        if (!incomingRefreshToken) {
+            return res.status(401).json({ message: "Unauthorized request" });
         }
-    
-        const decodedToken = jwt.verify( incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET )
-        
-        const user = await User.findById( decodedToken?._id )
-        
-        if(!user) {
-            return res.status(401).json({ message: "invalid refresh token" })
-        }
-    
-        if( incomingRefreshToken !== user?.refreshToken ){
-            return res.status(401).json({ message: "refresh token is expired or used" })
-        }
-    
-        const tokens = await generateAccessAndRefreshToken(user)
-        if( tokens.error ){
-            return res.status(500).json({ message: tokens.error })
-        }
-        const { accessToken, refreshToken } = tokens
-        
-        return res.status(200)
-            .cookie( "accessToken",  accessToken, options)
-            .cookie( "refreshToken", refreshToken, options )
-            .json({ accessToken, refreshToken: refreshToken})
 
+        let decodedToken;
+        try {
+            decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
+        } catch (err) {
+            void err;
+            return res.status(401).json({ message: "Invalid or expired refresh token" });
+        }
+
+        // Atomically rotate the refresh token: this only succeeds if the incoming
+        // token still matches what we have in the DB, which prevents two parallel
+        // refresh calls from clobbering each other.
+        const newAccessToken = jwt.sign(
+            { _id: decodedToken._id, email: decodedToken.email },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
+        );
+        const newRefreshToken = jwt.sign(
+            { _id: decodedToken._id },
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+        );
+
+        const updated = await User.findOneAndUpdate(
+            { _id: decodedToken._id, refreshToken: incomingRefreshToken },
+            { $set: { refreshToken: newRefreshToken } },
+            { new: true }
+        ).select("_id");
+
+        if (!updated) {
+            // Either the user doesn't exist or another concurrent refresh already rotated the token.
+            return res.status(401).json({ message: "Refresh token is expired or already used" });
+        }
+
+        return res.status(200)
+            .cookie("accessToken", newAccessToken, options)
+            .cookie("refreshToken", newRefreshToken, options)
+            .json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     } catch (error) {
-        console.log( "error in refreshing access token", error )
-        return res.status(401).json({ message: "Something went wrong" })
+        console.log("error in refreshing access token", error);
+        return res.status(500).json({ message: "Something went wrong" });
     }
 }
 
