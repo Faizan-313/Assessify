@@ -376,6 +376,14 @@ function Home() {
                                         Features
                                     </a>
                                 </li>
+                                <li>
+                                    <a
+                                        href="/docs"
+                                        className="text-gray-400 hover:text-indigo-300 transition-colors"
+                                    >
+                                        Documentation
+                                    </a>
+                                </li>
                             </ul>
                         </div>
 
@@ -412,9 +420,7 @@ function Home() {
                                     <FaTwitter />
                                 </a>
                                 <a
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    href="https://mail.google.com/mail/?view=cm&fs=1&to=codefusion.iust@gmail.com"
+                                    href="mailto:assessify.iust@gmail.com"
                                     aria-label="Email"
                                     className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all"
                                 >

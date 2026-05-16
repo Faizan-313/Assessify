@@ -25,6 +25,7 @@ import AppearedStudentList from "./pages/teacher/AppearedStudentList";
 import ViewPaper from "./pages/teacher/ViewPaper";
 import MonitorExam from "./pages/teacher/MonitorExam";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import Docs from "./pages/Docs";
 
 function MainLayout() {
   return (
@@ -50,6 +51,7 @@ function AppContent() {
     <Routes>
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/docs" element={<Docs />} />
 
         <Route element={<PublicOnlyRoute />}>
           <Route path="/signup" element={<Signup />} />
@@ -64,7 +66,7 @@ function AppContent() {
           <Route path="/dashboard" element={<TeacherDashboard />} />
           <Route path="/teacher/evaluation/:examId" element={<AppearedStudentList />} />
           <Route path="/teacher/evalvate/:examId/:studentId" element={<ViewPaper />} />
-          <Route path="/teacher/monitor/:examId" element={<MonitorExam />} />\
+          <Route path="/teacher/monitor/:examId" element={<MonitorExam />} />
         </Route>
 
       </Route>
