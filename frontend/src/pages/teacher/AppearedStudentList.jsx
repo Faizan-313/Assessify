@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Search, ClipboardCheck, AlertCircle, Loader2, ChevronLeft, ChevronRight, Sparkles, Clock, Lock, ShieldCheck, AlertTriangle
+    Search, ClipboardCheck, AlertCircle, Loader2, ChevronLeft, ChevronRight, Sparkles, Clock, Lock, ShieldCheck, AlertTriangle,
+    Link
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -8,6 +9,7 @@ import { apiCall } from "../../api/api";
 import { useTeacher } from "../../context/TeacherContext";
 import { useExam } from "../../context/ExamContext";
 import StudentRow, { StudentTableHeader } from "./components/StudentRow";
+import { isSubmissionGraded } from "../../utils/submissionEvaluateStatus";
 
 const STATUS_POLL_INTERVAL_MS = 5000;
 
@@ -30,8 +32,8 @@ function AppearedStudentList() {
     const inProgress = evaluationStatus === "in_progress";
     const isCompleted = evaluationStatus === "completed";
     const evaluating = inProgress || startingEvaluation;
-    // The auto-eval button is locked only while an auto evaluation run is actually
-    // happening, or after the exam has been finalized.
+    
+    // The auto-eval button is locked only while an auto evaluation run is actually happening, or after the exam has been finalized.
     const canStart = statusReady && !inProgress && !startingEvaluation && !isCompleted;
 
     const fetchEvaluationStatus = useCallback(async () => {
@@ -73,6 +75,8 @@ function AppearedStudentList() {
             if (next && next !== "in_progress") {
                 clearInterval(pollTimerRef.current);
                 pollTimerRef.current = null;
+                // Add a small delay to ensure database writes are fully committed
+                await new Promise(resolve => setTimeout(resolve, 500));
                 await fetchStudents(examId, currentPage);
                 if (next === "auto_evaluated") {
                     toast.success("Auto evaluation finished");
@@ -106,7 +110,7 @@ function AppearedStudentList() {
     const pendingCount = useMemo(() => {
         if (!Array.isArray(students)) return 0;
         return students.filter(
-            (s) => s?.examsAttempted?.[0]?.evaluateStatus !== "Evaluated"
+            (s) => !isSubmissionGraded(s?.examsAttempted?.[0]?.evaluateStatus)
         ).length;
     }, [students]);
 
@@ -124,10 +128,24 @@ function AppearedStudentList() {
 
     const handleAutoEvaluation = async () => {
         if (!canStart || pendingCount === 0) return;
-        const confirmed = window.confirm(
-            `Auto Evaluate ${pendingCount} pending paper${pendingCount > 1 ? "s" : ""} for "${exam.title || "this exam"}"?\n\n` +
-            `This may take several hours. Manual evaluation will be locked until it finishes.`
-        );
+        const confirmed = await new Promise((resolve) => {
+            const id = toast(() => (
+                <div className="max-w-md">
+                    <div className="font-medium">Auto Evaluate {pendingCount} pending paper{pendingCount > 1 ? "s" : ""} for "{exam.title || "this exam"}"?</div>
+                    <div className="text-sm mt-1">This may take several hours. Manual evaluation will be locked until it finishes.</div>
+                    <div className="flex gap-2 mt-3">
+                        <button
+                            className="px-3 py-1 cursor-pointer hover:bg-emerald-700 rounded bg-emerald-600 text-white text-sm"
+                            onClick={() => { toast.dismiss(id); resolve(true); }}
+                        >Start</button>
+                        <button
+                            className="px-3 py-1 cursor-pointer hover:bg-gray-300 rounded bg-gray-200 text-sm"
+                            onClick={() => { toast.dismiss(id); resolve(false); }}
+                        >Cancel</button>
+                    </div>
+                </div>
+            ));
+        });
         if (!confirmed) return;
 
         try {
@@ -223,10 +241,15 @@ function AppearedStudentList() {
                                 Manual evaluation is locked until the job finishes — please keep
                                 this page open or come back later.
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                <Lock className="w-3.5 h-3.5" />
-                                Editing is blocked while this is running.
-                            </p>
+                            <div className="flex items-center justify-between gap-4">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                    <Lock className="w-3.5 h-3.5" />
+                                    Editing is blocked while this is running.
+                                </p>
+                                <a href="/dashboard" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap">
+                                    Go to Dashboard
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -370,39 +393,6 @@ function AppearedStudentList() {
                                 </h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-300">
                                     Results for this exam are locked. Marks can no longer be edited.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {evaluating && (
-                    <div
-                        role="status"
-                        aria-live="polite"
-                        className="mb-6 overflow-hidden rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-r from-indigo-50 via-white to-emerald-50 dark:from-indigo-950/40 dark:via-gray-800 dark:to-emerald-950/40 shadow-md"
-                    >
-                        <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-emerald-500 to-indigo-500 bg-[length:200%_100%] animate-pulse" />
-                        <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-emerald-700 flex items-center justify-center shadow-md">
-                                <Loader2 className="w-6 h-6 text-white animate-spin" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                                        Auto Evaluation in Progress
-                                    </h3>
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
-                                        <Clock className="w-3 h-3" />
-                                        Running
-                                    </span>
-                                </div>
-                                <p className="text-sm text-gray-600 dark:text-gray-300">
-                                    Evaluating <span className="font-semibold">{pendingCount}</span> pending paper{pendingCount !== 1 ? "s" : ""} for this exam. This may take several hours.
-                                </p>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    <Lock className="w-3 h-3" />
-                                    Manual evaluation is locked until this finishes.
                                 </p>
                             </div>
                         </div>

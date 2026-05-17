@@ -1,7 +1,7 @@
 import {
     Calendar, Clock, Award, Copy, Check,
     Users, ChevronRight, Trash2,
-    Loader2
+    Loader2, Sparkles, Loader, AlertCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import getExamStatusHelper from "../utils/examStatusHelper.js";
@@ -43,6 +43,9 @@ function ExamCard({ exam, onViewDetails, onEvaluate, onCopyCode, copiedCode, onD
                     <h2 className="text-xl font-bold line-clamp-2 text-white">
                         {exam.title}
                     </h2>
+                    {exam.evaluationStatus && exam.evaluationStatus !== "not_started" && (
+                        <ExamEvaluationStatusBadge status={exam.evaluationStatus} />
+                    )}
                 </div>
             </div>
 
@@ -124,6 +127,48 @@ function ExamCard({ exam, onViewDetails, onEvaluate, onCopyCode, copiedCode, onD
                 </div>
             </div>
         </div>
+    );
+}
+
+function ExamEvaluationStatusBadge({ status }) {
+    const config = {
+        in_progress: {
+            label: "AI auto-evaluation running",
+            icon: Loader,
+            className: "bg-amber-500/15 text-amber-100 border border-amber-400/35",
+        },
+        auto_evaluated: {
+            label: "Papers auto-evaluated — review or finalize in panel",
+            icon: Sparkles,
+            className: "bg-violet-500/15 text-violet-100 border border-violet-400/35",
+        },
+        completed: {
+            label: "Results finalized (locked)",
+            icon: Award,
+            className: "bg-emerald-500/15 text-emerald-100 border border-emerald-400/35",
+        },
+        failed: {
+            label: "Auto-evaluation failed — retry from evaluation panel",
+            icon: AlertCircle,
+            className: "bg-red-500/15 text-red-100 border border-red-400/35",
+        },
+        manually_evaluated: {
+            label: "Marked manually",
+            icon: Award,
+            className: "bg-sky-500/15 text-sky-100 border border-sky-400/35",
+        },
+    }[status];
+
+    if (!config) return null;
+
+    const Icon = config.icon;
+    return (
+        <span
+            className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-snug ${config.className}`}
+        >
+            <Icon size={12} className={status === "in_progress" ? "animate-spin shrink-0" : "shrink-0"} />
+            {config.label}
+        </span>
     );
 }
 

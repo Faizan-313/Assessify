@@ -1,6 +1,10 @@
 import {
     User, ChevronRight, Loader2
 } from "lucide-react";
+import {
+    isSubmissionGraded,
+    SUBMISSION_EVAL_STATUS,
+} from "../../../utils/submissionEvaluateStatus";
 
 function StudentRow({ student, onEvaluate, index, autoEvaluating = false }) {
     const evaluationStatus = student.examsAttempted[0].evaluateStatus;
@@ -8,15 +12,24 @@ function StudentRow({ student, onEvaluate, index, autoEvaluating = false }) {
     const totalMarks = student.examsAttempted[0].examId.totalMarks;
     const percentage = ((totalScore / totalMarks) * 100).toFixed(1);
 
-    const isPending = evaluationStatus !== "Evaluated";
+    const isGraded = isSubmissionGraded(evaluationStatus);
+    const isPending = !isGraded;
     const isQueued = autoEvaluating && isPending;
+    const isManualEvaluated = evaluationStatus === SUBMISSION_EVAL_STATUS.EVALUATED;
+    const isAutoEvaluated = evaluationStatus === SUBMISSION_EVAL_STATUS.AUTO_EVALUATED;
 
-    const statusConfig = !isPending
+    const statusConfig = isManualEvaluated
         ? {
             color: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800",
             label: "Evaluated",
-            dot: "bg-emerald-500"
+            dot: "bg-emerald-500",
         }
+        : isAutoEvaluated
+            ? {
+                color: "bg-violet-50 dark:bg-violet-900/20 text-violet-800 dark:text-violet-300 border border-violet-200 dark:border-violet-800",
+                label: "Auto evaluated",
+                dot: "bg-violet-500",
+            }
         : isQueued
             ? {
                 color: "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800",
@@ -26,8 +39,10 @@ function StudentRow({ student, onEvaluate, index, autoEvaluating = false }) {
             : {
                 color: "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800",
                 label: "Pending",
-                dot: "bg-amber-500"
+                dot: "bg-amber-500",
             };
+
+    const dotPulse = !isGraded;
 
     // Grade calculation with visual feedback
     const getGradeColor = (percent) => {
@@ -105,13 +120,13 @@ function StudentRow({ student, onEvaluate, index, autoEvaluating = false }) {
 
             <td className="px-3 py-3">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig.color}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot} animate-pulse`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot} ${dotPulse ? "animate-pulse" : ""}`}></span>
                     {statusConfig.label}
                 </span>
             </td>
 
             <td className="px-4 py-3 text-center">
-                {!isPending ? (
+                {isGraded ? (
                     <button
                         onClick={() => onEvaluate(student._id, student)}
                         className="inline-flex items-center justify-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition-all focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800"

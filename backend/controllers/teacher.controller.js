@@ -215,7 +215,7 @@ const completeEvaluation = async (req, res) => {
 
         const pendingCount = await ExamSubmission.countDocuments({
             examId,
-            evaluateStatus: { $ne: "Evaluated" },
+            evaluateStatus: { $nin: ["Evaluated", "AutoEvaluated"] },
         });
 
         if (pendingCount > 0) {

@@ -1,24 +1,81 @@
 import mongoose from "mongoose";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Exam } from "../models/exam.model.js";
 import { QuestionPaper } from "../models/questions.model.js";
 import { ExamSubmission } from "../models/examSubmission.model.js";
 
 
-// Lazy-init the OpenAI client so the module can still load in environments
-// where OPENAI_API_KEY is not configured (e.g. local dev without AI grading).
-let openaiClient = null;
-function getOpenAIClient() {
-    if (openaiClient) return openaiClient;
-    const apiKey = process.env.OPENAI_API_KEY;
+// Lazy-init so the module can load when GEMINI_API_KEY is missing.
+let geminiAi = null;
+
+function getGeminiAi() {
+    if (geminiAi) return geminiAi;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        throw new Error("OPENAI_API_KEY is not configured");
+        throw new Error("GEMINI_API_KEY is not configured");
     }
-    openaiClient = new OpenAI({ apiKey });
-    return openaiClient;
+    geminiAi = new GoogleGenerativeAI(apiKey);
+    return geminiAi;
 }
 
-const AI_GRADER_MODEL = process.env.OPENAI_GRADER_MODEL || "gpt-4o-mini";
+const GEMINI_GRADER_MODEL = ( process.env.GEMINI_GRADER_MODEL).trim();
+
+// Rate limits by plan. 
+const GEMINI_MAX_RPM = Math.max(1, Number.parseInt(process.env.GEMINI_MAX_RPM || "5", 10) || 5);
+
+// Minimum ms between generateContent calls to satisfy RPM (60s / max requests per minute). 
+const GEMINI_RPM_MIN_INTERVAL_MS = Math.ceil(60_000 / GEMINI_MAX_RPM);
+
+// extra delay on top of RPM spacing (ms). 
+const GEMINI_REQUEST_DELAY_EXTRA_MS = Math.max(0, Number.parseInt(process.env.GEMINI_REQUEST_DELAY_MS || "0", 10) || 0);
+
+const GEMINI_REQUEST_DELAY_MS = Math.max(GEMINI_RPM_MIN_INTERVAL_MS, GEMINI_REQUEST_DELAY_EXTRA_MS);
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryDelayMsFromGeminiError(error) {
+    const msg = String(error?.message ?? "");
+    const m = msg.match(/retry in ([\d.]+)s/i);
+    if (!m) return null;
+    const sec = Number.parseFloat(m[1]);
+    if (!Number.isFinite(sec)) return null;
+    return Math.min(60_000, Math.max(500, Math.ceil(sec * 1000)));
+}
+
+function clampMarks(value, max) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    if (Number.isFinite(max) && n > max) return max;
+    return n;
+}
+
+// Retries generateContent on 429/503 with backoff. 
+async function generateContentWithRetries(fn, { maxAttempts = 5 } = {}) {
+    let lastErr;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            lastErr = err;
+            const status = err?.status;
+            const retryable = status === 429 || status === 503;
+            if (!retryable || attempt === maxAttempts) {
+                throw err;
+            }
+            const fromApi = parseRetryDelayMsFromGeminiError(err);
+            const backoffMs =
+                fromApi ??
+                Math.min(45_000, Math.ceil(1500 * 2 ** (attempt - 1)));
+            console.warn(
+                `[Gemini] ${status} on attempt ${attempt}/${maxAttempts}, waiting ${backoffMs}ms before retry`
+            );
+            await sleep(backoffMs);
+        }
+    }
+    throw lastErr;
+}
 
 
 function mcqHasAnswerKey(question) {
@@ -54,28 +111,13 @@ function scoreMcqQuestion(question, answerText) {
     return { marksObtained, maxMarks };
 }
 
-/*
- * AI-graded evaluation for free-text and code questions.
-
- * The model never executes student code; it only compares the submission
- * against the reference answer/code and the rubric described in the prompt.
- * On any failure (missing key, network error, malformed model output) we
- * return status "error" so the caller can route the answer to manual review.
- */
+// AI-graded evaluation for free-text and code questions.
+// The model compares the submission against the reference answer/code.
 function buildTextGradingMessages(question, answerText) {
     const maxMarks = Number(question.marks) || 0;
     const referenceAnswer = question.evaluationConfig?.referenceAnswer ?? "";
 
-    const systemPrompt = [
-        "You are an exam grader for short-answer / descriptive questions.",
-        "Score the student's answer strictly against the provided reference answer and the question itself.",
-        "Reward correctness of facts and key concepts; minor wording differences are fine.",
-        "Penalize missing key points, factually wrong statements, and irrelevant content.",
-        "Do not award marks for empty, gibberish, or completely off-topic answers.",
-        "Return ONLY a JSON object that matches this exact shape:",
-        '{ "marksObtained": <number between 0 and maxMarks, may be fractional>, "feedback": "<short 1-2 sentence justification>" }',
-        "Never output anything outside the JSON object.",
-    ].join(" ");
+    const systemPrompt = process.env.SYSTEM_PROMPT_TEXT;
 
     const userPrompt = [
         `Question: ${question.questionText ?? ""}`,
@@ -94,18 +136,7 @@ function buildCodeGradingMessages(question, answerText) {
     const maxMarks = Number(question.marks) || 0;
     const referenceCode = question.evaluationConfig?.referenceCode ?? "";
 
-    const systemPrompt = [
-        "You are an exam grader for programming questions.",
-        "You will be given the problem statement, a reference solution, and the student's submitted code.",
-        "Do NOT execute the code. Reason about it statically.",
-        "Judge correctness (does it solve the stated problem?), handling of edge cases, time/space sanity, and overall code quality.",
-        "Wording / variable name / language differences from the reference are fine as long as the logic is correct.",
-        "Give partial credit for partially correct solutions (e.g. correct main logic but missing edge cases).",
-        "Award 0 for empty submissions, code unrelated to the problem, or code that clearly cannot solve it.",
-        "Return ONLY a JSON object that matches this exact shape:",
-        '{ "marksObtained": <number between 0 and maxMarks, may be fractional>, "feedback": "<short 1-2 sentence justification>" }',
-        "Never output anything outside the JSON object.",
-    ].join(" ");
+    const systemPrompt = process.env.SYSTEM_PROMPT_CODE;
 
     const userPrompt = [
         `Problem statement: ${question.questionText ?? ""}`,
@@ -131,11 +162,15 @@ async function evaluateWithAi({ question, answerText, kind }) {
 
     // Short-circuit obviously empty answers — no need to spend a model call.
     if (!answerText || String(answerText).trim().length === 0) {
-        return { status: "done", marksObtained: 0, feedback: "Empty answer." };
+        return {
+            status: "done",
+            marksObtained: 0,
+            feedback: "No answer was submitted; no marks awarded.",
+        };
     }
 
     try {
-        const client = getOpenAIClient();
+        const genAI = getGeminiAi();
 
         let messages;
         if (kind === "text") {
@@ -147,38 +182,70 @@ async function evaluateWithAi({ question, answerText, kind }) {
             return { status: "error", marksObtained: 0 };
         }
 
-        const response = await client.chat.completions.create({
-            model: AI_GRADER_MODEL,
-            temperature: 0,
-            response_format: { type: "json_object" },
-            messages,
+        const systemInstruction = messages[0]?.content ?? "";
+        const userPrompt = messages[1]?.content ?? "";
+
+        const model = genAI.getGenerativeModel({
+            model: GEMINI_GRADER_MODEL,
+            systemInstruction,
+            generationConfig: {
+                temperature: 0,
+                responseMimeType: "application/json",
+            },
         });
 
-        const raw = response?.choices?.[0]?.message?.content ?? "";
+        const response = await generateContentWithRetries(() =>
+            model.generateContent(userPrompt)
+        );
+        const raw = response?.response?.text() ?? "";
+        const qid = question?._id != null ? String(question._id) : "?";
+
         let parsed;
         try {
             parsed = JSON.parse(raw);
         } catch (parseErr) {
-            console.error("evaluateWithAi: failed to parse model JSON output:", raw, parseErr);
+            console.error(
+                `[auto-eval] questionId=${qid} kind=${kind} parse error; raw text:`,
+                raw.length > 6000 ? `${raw.slice(0, 6000)}… [truncated]` : raw,
+                parseErr
+            );
             return { status: "error", marksObtained: 0 };
         }
 
-        const marksObtained = clampMarks(parsed?.marksObtained, maxMarks);
-        const feedback = typeof parsed?.feedback === "string" ? parsed.feedback : undefined;
+        // Handle both 'marksObtained' and 'marks_awarded' field names from AI
+        const marksObtained = clampMarks(parsed?.marksObtained ?? parsed?.marks_awarded, maxMarks);
+        const feedbackRaw =
+            typeof parsed?.feedback === "string"
+                ? parsed.feedback
+                : typeof parsed?.comment === "string"
+                    ? parsed.comment
+                    : typeof parsed?.rationale === "string"
+                        ? parsed.rationale
+                        : "";
+        const feedback =
+            feedbackRaw.trim() ||
+            "(Model returned no feedback text — check JSON shape and prompts.)";
+
+        const rawForLog =
+            raw.length > 8000 ? `${raw.slice(0, 8000)}… [truncated ${raw.length} chars]` : raw;
+
+        console.log(`[auto-eval] questionId=${qid} model raw JSON:`, rawForLog);
 
         return { status: "done", marksObtained, feedback };
     } catch (error) {
+        const status = error?.status;
+        if (status === 404) {
+            console.error(
+                `evaluateWithAi: model "${GEMINI_GRADER_MODEL}" is not available for this API key (404). `
+            );
+        } else if (status === 429) {
+            console.error(
+                "evaluateWithAi: quota/rate limit (429) persists after retries. " + `buy subscription with higher GEMINI_MAX_RPM or GEMINI_REQUEST_DELAY_MS.`
+            );
+        }
         console.error("Error in evaluateWithAi function:", error);
         return { status: "error", marksObtained: 0 };
     }
-}
-
-
-function clampMarks(value, max) {
-    const n = Number(value);
-    if (!Number.isFinite(n) || n < 0) return 0;
-    if (Number.isFinite(max) && n > max) return max;
-    return n;
 }
 
 
@@ -224,14 +291,20 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
                 }
 
                 if (ans.questionType === "text" || ans.questionType === "code") {
-                    const { status, marksObtained } = await evaluateWithAi({
+                    const answered =
+                        ans.answerText && String(ans.answerText).trim().length > 0;
+                    const { status, marksObtained, feedback } = await evaluateWithAi({
                         question: q,
                         answerText: ans.answerText,
                         kind: ans.questionType,
                     });
 
+                    if (answered && GEMINI_REQUEST_DELAY_MS > 0) {
+                        await sleep(GEMINI_REQUEST_DELAY_MS);
+                    }
+
                     //if the auto evaluation fails for particular question, then we add it to the manual review
-                    //TODO:(future feature) we can add a feature to retry the auto evaluation for that particular question 
+                    //TODO:(later) add a feature to retry the auto evaluation for that particular question 
                     if(status === "error"){
                         needsManualReview = true;
                         updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
@@ -240,7 +313,11 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
 
                     const safeMarks = clampMarks(marksObtained, Number(q.marks) || 0);
                     totalScore += safeMarks;
-                    updatedAnswers.push({ ...ans, marksObtained: safeMarks });
+                    updatedAnswers.push({
+                        ...ans,
+                        marksObtained: safeMarks,
+                        aiFeedback: typeof feedback === "string" ? feedback : "",
+                    });
                     continue;
                 }
 
@@ -249,7 +326,7 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
                 updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
             }
 
-            const evaluateStatus = needsManualReview ? "Pending" : "Evaluated";
+            const evaluateStatus = needsManualReview ? "Pending" : "AutoEvaluated";
 
             bulkOps.push({
                 updateOne: {

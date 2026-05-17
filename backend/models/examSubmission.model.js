@@ -22,7 +22,7 @@ const ExamSubmissionSchema = new mongoose.Schema({
     },
     evaluateStatus: {
         type: String,
-        enum : ["Pending", "Evaluated"],
+        enum : ["Pending", "AutoEvaluated", "Evaluated"],
         default: "Pending"
     },
     answers: [
@@ -40,6 +40,7 @@ const ExamSubmissionSchema = new mongoose.Schema({
         answerText: String,
         marks: { type: Number },
         marksObtained: { type: Number, default: 0 },
+        aiFeedback: { type: String, default: "" },
         },
     ],
     totalScore: { 
