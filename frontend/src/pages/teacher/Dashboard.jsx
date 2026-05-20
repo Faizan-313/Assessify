@@ -8,7 +8,6 @@ import toast from "react-hot-toast";
 import { useTeacher } from "../../context/TeacherContextCore";
 import ExamCard from "./components/ExamCard";
 import ExamDetailsModal from "./components/ExamDetailsModal";
-import { apiCall } from "../../api/api";
 
 
 export default function TeacherDashboard() {
@@ -16,7 +15,7 @@ export default function TeacherDashboard() {
     const [selectedExam, setSelectedExam] = useState(null);
     const [copiedCode, setCopiedCode] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
-    const { exams, examsLoading, examsError, fetchExams, removeExam } = useTeacher();
+    const { exams, examsLoading, examsError, fetchExams, deleteExam } = useTeacher();
 
     const navigate = useNavigate();
 
@@ -40,16 +39,7 @@ export default function TeacherDashboard() {
         toast.dismiss(toastId);
         setDeletingId(id);
         try {
-            const res = await apiCall(`${import.meta.env.VITE_API_URL}/api/v1/exams/${id}`, "DELETE");
-            if (res?.status === 200) {
-                removeExam(id);
-                toast.success("Exam deleted successfully.");
-            } else {
-                toast.error(res.message || "Failed to delete exam");
-            }
-        } catch (err) {
-            console.error("Failed to delete exam:", err);
-            toast.error("Failed to delete exam");
+            await deleteExam(id);
         } finally {
             setDeletingId(null);
         }
