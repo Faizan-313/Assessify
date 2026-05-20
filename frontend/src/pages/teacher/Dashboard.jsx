@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import {
     Clock, FileText, PlusCircle, Award, BookOpen, TrendingUp,
-    Loader2, AlertCircle
+    AlertCircle
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { useTeacher } from "../../context/TeacherContext";
+import { useTeacher } from "../../context/TeacherContextCore";
 import ExamCard from "./components/ExamCard";
 import ExamDetailsModal from "./components/ExamDetailsModal";
 import { apiCall } from "../../api/api";
@@ -16,7 +16,7 @@ export default function TeacherDashboard() {
     const [selectedExam, setSelectedExam] = useState(null);
     const [copiedCode, setCopiedCode] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
-    const { exams, loading, error, fetchExams, removeExam } = useTeacher();
+    const { exams, examsLoading, examsError, fetchExams, removeExam } = useTeacher();
 
     const navigate = useNavigate();
 
@@ -95,15 +95,8 @@ export default function TeacherDashboard() {
         completed: exams.filter((e) => new Date() > new Date(e.endTime)).length,
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-gray-950">
-                <div className="text-center">
-                    <Loader2 className="animate-spin h-12 w-12 text-violet-400 mx-auto mb-4" />
-                    <p className="text-gray-400 text-lg font-medium">Loading dashboard...</p>
-                </div>
-            </div>
-        );
+    if (examsLoading) {
+        return <DashboardSkeleton />;
     }
 
     return (
@@ -145,16 +138,16 @@ export default function TeacherDashboard() {
                     </Link>
                 </div>
 
-                {error && (
+                {examsError && (
                     <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-3">
                         <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="font-medium text-red-300">{error}</p>
+                            <p className="font-medium text-red-300">{examsError}</p>
                         </div>
                     </div>
                 )}
 
-                {exams.length > 0 && (
+                {exams?.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                         <StatsCard
                             icon={<BookOpen size={22} />}
@@ -183,7 +176,7 @@ export default function TeacherDashboard() {
                     </div>
                 )}
 
-                {exams.length === 0 ? (
+                {exams?.length === 0 ? (
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-12 text-center">
                         <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-72 h-72 bg-violet-500/15 rounded-full blur-3xl pointer-events-none" />
                         <div className="relative max-w-md mx-auto">
@@ -252,6 +245,38 @@ const accentMap = {
         glow: "hover:shadow-violet-500/10 hover:border-violet-500/30",
     },
 };
+
+function DashboardSkeleton() {
+    return (
+        <div className="relative min-h-screen bg-gray-950 text-gray-100 overflow-hidden animate-pulse">
+            <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-indigo-600/15 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-violet-600/15 rounded-full blur-[130px] pointer-events-none" />
+
+            <div className="relative max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pt-24 sm:pt-28 lg:pt-32">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
+                    <div className="space-y-4 w-full sm:w-auto">
+                        <div className="h-5 w-40 rounded-full bg-white/10" />
+                        <div className="h-12 w-72 rounded-full bg-white/10" />
+                        <div className="h-4 w-56 rounded-full bg-white/10" />
+                    </div>
+                    <div className="h-12 w-48 rounded-xl bg-white/10" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="h-36 rounded-3xl border border-white/10 bg-white/5 p-5" />
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="rounded-xl p-5 border border-white/10 bg-white/5 h-56" />
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function StatsCard({ icon, label, value, accent = "indigo" }) {
     const a = accentMap[accent] || accentMap.indigo;

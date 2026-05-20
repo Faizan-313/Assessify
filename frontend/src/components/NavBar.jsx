@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaBars, FaUser, FaSignOutAlt, FaChevronDown, FaTachometerAlt } from 'react-icons/fa';
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextCore';
 
 function NavBar() {
     const { user, logout } = useAuth();

@@ -1,9 +1,7 @@
-import { createContext, useState, useContext, useCallback } from "react";
+import { useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { apiCall } from "../api/api";
-
-const TeacherContext = createContext();
-export const useTeacher = () => useContext(TeacherContext);
+import { TeacherContext } from "./TeacherContextCore";
 
 const url = import.meta.env.VITE_API_URL;
 
@@ -88,3 +86,4 @@ export const TeacherProvider = ({ children }) => {
         </TeacherContext.Provider>
     );
 };
+

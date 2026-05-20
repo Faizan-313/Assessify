@@ -145,7 +145,7 @@ export default function CreateExam() {
         if (isDraft) {
             try {
                 // Do NOT persist any image-related data in drafts. Clear image and preview so user must re-upload when publishing.
-                const questionsForDraft = questions.map((q) => ({
+                const questionsForDraft = questions?.map((q) => ({
                     ...q,
                     image: null,
                     imagePreview: null
@@ -169,7 +169,7 @@ export default function CreateExam() {
         const isValid = validateExamDetails(examDetails, questions);
         if (!isValid) return;
 
-        for (let i = 0; i < questions.length; i++) {
+        for (let i = 0; i < questions?.length; i++) {
             if (!questions[i].questionText.trim()) {
                 toast.error(`Question ${i + 1} text is required`);
                 return;
@@ -197,7 +197,7 @@ export default function CreateExam() {
         }));
 
         // Questions payload (without files) include a hasImage flag for each question
-        const questionsPayload = questions.map((q) => ({
+        const questionsPayload = questions?.map((q) => ({
             type: q.type,
             questionText: q.questionText,
             marks: parseInt(q.marks),
@@ -209,7 +209,7 @@ export default function CreateExam() {
         formData.append('totalMarks', String(totalMarks));
 
         // Append images with keys that indicate their question index
-        questions.forEach((q, i) => {
+        questions?.forEach((q, i) => {
             if (q.image && !(typeof q.image === 'string')) {
                 formData.append(`image_${i}`, q.image);
             }
@@ -273,7 +273,7 @@ export default function CreateExam() {
                         <div>
                             <h4 className="font-bold text-white text-lg">Question {index + 1}</h4>
                             <span className="text-xs text-gray-400">
-                                {q.type === "mcq" ? "Multiple Choice" : q.type === "code" ? "Code Question" : q.type === "diagram" ? "Diagram based" : "Text Answer"}
+                                {q?.type === "mcq" ? "Multiple Choice" : q?.type === "code" ? "Code Question" : q?.type === "diagram" ? "Diagram based" : "Text Answer"}
                             </span>
                         </div>
                     </div>
@@ -303,7 +303,7 @@ export default function CreateExam() {
                         </span>
                     </div>
 
-                    {q.type === "mcq" && (
+                    {q?.type === "mcq" && (
                         <div className="mt-4 space-y-2 pl-1">
                             {q.options.map((option, optIndex) => (
                                 option.trim() && (
@@ -409,7 +409,7 @@ export default function CreateExam() {
 
                 <ImageUploadComponent key={index} index={index} questions={questions} setQuestions={setQuestions} />
 
-                {q.type === "mcq" && (
+                {q?.type === "mcq" && (
                     <div className="bg-violet-500/[0.06] p-4 rounded-xl border border-violet-500/20 mb-4">
                         <span className="block text-xs font-semibold text-violet-200 mb-3 uppercase tracking-wider">
                             Multiple Choice Options
@@ -511,7 +511,7 @@ export default function CreateExam() {
                         </div>
 
                         <div>
-                            <label htmlFor="exam-duration" className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider flex items-center gap-1">
+                            <label htmlFor="exam-duration" className="text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider flex items-center gap-1">
                                 <Clock className="w-3.5 h-3.5" />
                                 Duration (minutes)
                             </label>
@@ -528,7 +528,7 @@ export default function CreateExam() {
                         </div>
 
                         <div>
-                            <label htmlFor="exam-code" className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider flex items-center gap-1">
+                            <label htmlFor="exam-code" className="text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider flex items-center gap-1">
                                 <FileLock2 className="w-3.5 h-3.5" />
                                 Exam Code
                             </label>

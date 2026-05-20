@@ -1,7 +1,7 @@
 import { Mail, Lock, User, UserPlus, Eye, EyeClosed } from "lucide-react"
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContextCore";
 import { useNavigate } from "react-router-dom";
 import logo from "/logo3.svg";
 

@@ -8,7 +8,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { apiCall } from "../../api/api";
-import { useExam } from "../../context/ExamContext";
+import { useExam } from "../../context/ExamContextCore";
 import MarksInput from "./components/MarksInput.jsx";
 
 // Utility Functions

@@ -1,13 +1,8 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { apiCall } from "../api/api";
-
-const AuthContext = createContext();
-
-export function useAuth() {
-    return useContext(AuthContext);
-}
+import { AuthContext } from "./AuthContextCore";
 
 const url = import.meta.env.VITE_API_URL;
 
@@ -103,3 +98,4 @@ export function AuthProvider({ children }) {
         </AuthContext.Provider>
     )
 }
+

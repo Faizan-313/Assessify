@@ -3,8 +3,8 @@ import {
     Search, ClipboardCheck, AlertCircle, Loader2, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useTeacher } from "../../context/TeacherContext";
-import { useExam } from "../../context/ExamContext";
+import { useTeacher } from "../../context/TeacherContextCore";
+import { useExam } from "../../context/ExamContextCore";
 import StudentRow, { StudentTableHeader } from "./components/StudentRow";
 
 function AppearedStudentList() {

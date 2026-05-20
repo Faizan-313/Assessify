@@ -1,7 +1,7 @@
 import React from "react";
 import ExamInstructions from "./components/ExamInstruction"
 import { toast } from "react-hot-toast";
-import { useExam } from "../../context/ExamContext";
+import { useExam } from "../../context/ExamContextCore";
 import { useNavigate } from "react-router-dom";
 import { checkCamera } from "../../features/ai-monitoring/checkCamera.js";
 
