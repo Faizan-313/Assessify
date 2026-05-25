@@ -97,6 +97,7 @@ function Signup() {
                                     type="text"
                                     id="name"
                                     name="name"
+                                    autoComplete="username"
                                     value={formData.name}
                                     onChange={handleChange}
                                     placeholder="Enter your full name"
@@ -116,6 +117,7 @@ function Signup() {
                                     type="email"
                                     id="email"
                                     name="email"
+                                    autoComplete="email"
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Enter your email"
@@ -143,6 +145,7 @@ function Signup() {
                                     placeholder="Create a password"
                                     min={6}
                                     required
+                                    autoComplete="current-password"
                                     className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-3 text-gray-700 bg-gray-50 focus:bg-white shadow-sm focus:border-[#5c8374] focus:ring-2 focus:ring-[#5c8374] focus:outline-none transition-all"
                                 />
                             </div>
