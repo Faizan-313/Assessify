@@ -136,7 +136,7 @@ const refreshAccessToken = async (req, res)=>{
             return res.status(401).json({ message: "Unauthorized request" })
         }
     
-        const decodedToken = jwt.verify( incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET )
+        const decodedToken = jwt.verify( incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET, { algorithm: "HS256" } )
         
         const user = await User.findById( decodedToken?._id )
         
