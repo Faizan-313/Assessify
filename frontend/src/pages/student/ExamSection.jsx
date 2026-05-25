@@ -9,7 +9,7 @@ import { python } from "@codemirror/lang-python";
 import { java } from "@codemirror/lang-java";
 import { cpp } from "@codemirror/lang-cpp";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { Clock, FileText, Code, User, AlertTriangle, Shield } from "lucide-react";
+import { Clock, FileText, Code, User, AlertTriangle, Shield, Loader2, Calendar, Users } from "lucide-react";
 import DiagramCanvas from "./components/DiagramCanvas";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -28,11 +28,13 @@ function ExamSection() {
     const [examPaused, setExamPaused] = useState(false);
     const [pauseReason, setPauseReason] = useState(null);
     const [needsFullscreen, setNeedsFullscreen] = useState(false);
+    const [timerReady, setTimerReady] = useState(false);
 
     const submitAttemptedRef = useRef(false);
     const timerRef = useRef(null);
     const socketRef = useRef(null);
     const studentJoinedEmittedRef = useRef(false);
+    const startedAtRef = useRef(0);
     
     const isSubmittedRef = useRef(false);
     //Suppress proctoring UI during submit click sequence (blur/visibility fire before onClick). ms timestamp. 
@@ -93,7 +95,6 @@ function ExamSection() {
                     name: studentDetails.name,
                     rollNumber: studentDetails.rollNumber,
                     collegeId: studentDetails.collegeId,
-                    session: studentDetails.session,
                     batch: studentDetails.batch
                 }
             });
@@ -111,8 +112,22 @@ function ExamSection() {
         [reportViolation]
     );
 
-    const handleSubmit = useCallback(async () => {
+    const handleSubmit = useCallback(async (userInitiated = false) => {
         if (submitAttemptedRef.current) return;
+
+        if (!studentDetails?._id || !questionsRef.current?.length) {
+            console.warn("Ignored exam submit: session or questions not loaded yet");
+            if (userInitiated) {
+                toast.error("Exam is still loading. Please wait a moment.");
+            }
+            return;
+        }
+
+        // Prevent automatic submits that fire immediately after mount/navigation
+        if (!userInitiated && startedAtRef.current && (Date.now() - startedAtRef.current) < 5000) {
+            // console.warn("Ignored premature auto-submit");
+            return;
+        }
         proctoringSuppressedUntilRef.current = Date.now() + 8000;
         submitAttemptedRef.current = true;
         isSubmittedRef.current = true;
@@ -145,7 +160,6 @@ function ExamSection() {
                         rollNumber: studentDetails.rollNumber,
                         collegeId: studentDetails.collegeId,
                         name: studentDetails.name,
-                        session: studentDetails.session,
                         batch: studentDetails.batch
                     },
                 },
@@ -166,6 +180,7 @@ function ExamSection() {
                 }
 
                 toast.success("Exam submitted successfully!");
+                sessionStorage.removeItem("studentExamSession");
                 stopProctoring();
                 const name = studentDetails?.name
                     ?.split(" ")
@@ -203,7 +218,26 @@ function ExamSection() {
     const handleSubmitRef = useRef(handleSubmit);
     handleSubmitRef.current = handleSubmit;
 
-    //Calculate initial time 
+    // If session never loads (e.g. opened /section URL directly), send back to registration
+    useEffect(() => {
+        if (!exam) return;
+        const hasSession =
+            studentDetails?._id &&
+            Array.isArray(questionPaper?.questions) &&
+            questionPaper.questions.length > 0;
+        if (hasSession) return;
+
+        const stored = sessionStorage.getItem("studentExamSession");
+        if (stored) return;
+
+        const t = setTimeout(() => {
+            toast.error("Please complete registration before starting the exam.");
+            navigate("/exam/student/details", { replace: true });
+        }, 1500);
+        return () => clearTimeout(t);
+    }, [exam, studentDetails, questionPaper, navigate]);
+
+    //Calculate initial time
     useEffect(() => {
         if (!exam?.duration || !exam?.endTime) return;
 
@@ -213,24 +247,28 @@ function ExamSection() {
         const timeUntilEnd = Math.floor((examEndTime - now) / 1000);
         const calculatedTime = Math.min(durationSeconds, timeUntilEnd);
 
-        if (calculatedTime <= 0) {
+        if (!Number.isFinite(calculatedTime) || calculatedTime <= 0) {
             toast.error("This exam has already ended");
-            handleSubmit();
-        } else {
-            setTimeLeft(calculatedTime);
+            setTimerReady(false);
+            return;
         }
+
+        setTimeLeft(calculatedTime);
+        setTimerReady(true);
     }, [exam]);
 
-    //Timer countdown
+    // Timer countdown — do not depend on timeLeft (re-running every second restarted the interval)
     useEffect(() => {
-        if (isSubmitted || submitAttemptedRef.current || examPaused) return;
+        if (!timerReady || isSubmitted || submitAttemptedRef.current || examPaused || !exam) {
+            return;
+        }
 
         timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
+            setTimeLeft((prev) => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current);
                     toast.error("Time's up! Submitting exam automatically...");
-                    handleSubmit();
+                    handleSubmitRef.current();
                     return 0;
                 }
                 return prev - 1;
@@ -238,7 +276,12 @@ function ExamSection() {
         }, 1000);
 
         return () => clearInterval(timerRef.current);
-    }, [isSubmitted, examPaused, handleSubmit]);
+    }, [timerReady, isSubmitted, examPaused, exam]);
+
+    // Record when the student actually entered the exam section (used to avoid immediate auto-submits)
+    useEffect(() => {
+        if (exam && studentDetails) startedAtRef.current = Date.now();
+    }, [exam, studentDetails]);
 
     //Socket connection 
     useEffect(() => {
@@ -265,7 +308,6 @@ function ExamSection() {
                         name: studentDetails.name,
                         rollNumber: studentDetails.rollNumber,
                         collegeId: studentDetails.collegeId,
-                        session: studentDetails.session,
                         batch: studentDetails.batch
                     }
                 });
@@ -657,6 +699,23 @@ function ExamSection() {
             </div>
         );
     }
+
+    const sessionReady =
+        studentDetails?._id &&
+        Array.isArray(questionPaper?.questions) &&
+        questionPaper.questions.length > 0;
+
+    if (!sessionReady) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                    <Loader2 className="w-10 h-10 mx-auto text-[#5c8374] animate-spin mb-4" />
+                    <p className="text-gray-600 dark:text-gray-300">Loading your exam session…</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] via-[#e8f5f3] to-[#dff1ee] dark:from-[#092635] dark:via-[#1b4242] dark:to-[#0d3a47] py-8 px-4 sm:px-6 lg:px-8">
 
@@ -716,7 +775,6 @@ function ExamSection() {
                                 { label: "Full Name", value: name },
                                 { label: "Roll Number", value: studentDetails?.rollNumber },
                                 { label: "College ID", value: studentDetails?.collegeId },
-                                { label: "Session", value: studentDetails?.session },
                                 { label: "Batch", value: studentDetails?.batch },
                             ].map(({ label, value }) => (
                                 <div key={label} className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-lg p-4">
@@ -774,6 +832,35 @@ function ExamSection() {
                                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                             {formatDateTime(exam.endTime)}
                                         </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="bg-gradient-to-br from-[#f0f8f7] to-[#e0f2f0] dark:from-[#5c8374]/20 dark:to-[#1b4242]/20 rounded-xl p-4 border border-[#9ec8b9] dark:border-[#5c8374]">
+                                <div className="flex items-center gap-3">
+                                    <Calendar className="w-5 h-5 text-[#5c8374] dark:text-[#9ec8b9]" />
+                                    <div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Session</p>
+                                        <p className="text-lg font-semibold text-gray-900 dark:text-white">{exam.session || "N/A"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-gradient-to-br from-[#f0f8f7] to-[#e0f2f0] dark:from-[#5c8374]/20 dark:to-[#1b4242]/20 rounded-xl p-4 border border-[#9ec8b9] dark:border-[#5c8374]">
+                                <div className="flex items-center gap-3">
+                                    <Users className="w-5 h-5 text-[#5c8374] dark:text-[#9ec8b9]" />
+                                    <div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Branch</p>
+                                        <p className="text-lg font-semibold text-gray-900 dark:text-white">{exam.branch || "N/A"}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-gradient-to-br from-[#f0f8f7] to-[#e0f2f0] dark:from-[#5c8374]/20 dark:to-[#1b4242]/20 rounded-xl p-4 border border-[#9ec8b9] dark:border-[#5c8374]">
+                                <div className="flex items-center gap-3">
+                                    <FileText className="w-5 h-5 text-[#5c8374] dark:text-[#9ec8b9]" />
+                                    <div>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">Semester</p>
+                                        <p className="text-lg font-semibold text-gray-900 dark:text-white">{exam.semester || "N/A"}</p>
                                     </div>
                                 </div>
                             </div>

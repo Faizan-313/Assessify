@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import { flushSync } from 'react-dom'
 import { useExam } from '../../context/ExamContextCore'
 import { useProctoringCtx } from '../../context/proctoringContextCore'
 import toast from 'react-hot-toast'
@@ -12,51 +11,49 @@ const StudentDetailsFilling = () => {
     const { phase, startCalibration, finishCalibration, stop, setStatusMessage } = useProctoringCtx()
 
     const [formData, setFormData] = useState({
-        examId: exam._id,
+        examId: exam?._id ?? "",
         fullName: '',
         rollNumber: '',
         collegeId: '',
-        session: '',
         batch: ''
     })
 
+    useEffect(() => {
+        if (!exam?._id) return;
+        setFormData((prev) => ({
+            ...prev,
+            examId: exam._id,
+        }));
+    }, [exam?._id]);
+
     const [submitting, setSubmitting] = useState(false);
-    const submitPromiseRef = useRef(null);
+    const registrationOkRef = useRef(false);
     const handledRef = useRef(false);
 
     const navigate = useNavigate();
 
-    // Once the proctoring pipeline reaches "monitoring", the baseline is locked in. 
-    // The overlay stays up (with an updated "finalizing…" status) until the submit request resolves, 
-    // so there's no dead interval where the form sits blurred with a tiny PIP.
+    // ProctoringProvider stays mounted across details exam routes; reset stale "monitoring" state.
     useEffect(() => {
-        if (!submitting || phase !== "monitoring" || handledRef.current) return;
-        if (!submitPromiseRef.current) return;
+        stop();
+    }, [stop]);
+
+    // After registration succeeds, calibrate; only then enter the exam (never navigate before details API finishes).
+    useEffect(() => {
+        if (!submitting || !registrationOkRef.current || phase !== "monitoring" || handledRef.current) {
+            return;
+        }
         handledRef.current = true;
 
-        const pending = submitPromiseRef.current;
-        submitPromiseRef.current = null;
+        setStatusMessage("Starting your exam…");
+        toast.dismiss();
+        toast.success("You're all set. Starting exam…");
 
-        setStatusMessage("Finalizing and securing your session…");
-
-        (async () => {
-            const res = await pending;
-            toast.dismiss();
-            if (res?.success) {
-                toast.success("You're all set. Starting exam…");
-                // flushSync forces React to commit the overlay-close and route change in a single synchronous pass. Without it, the route change would cause the overlay to briefly re-appear in the new page before disappearing again.
-                flushSync(() => {
-                    finishCalibration();
-                    navigate("/exam/student/section");
-                });
-            } else {
-                toast.error(res?.error || "Failed to submit details");
-                stop();
-                setSubmitting(false);
-                handledRef.current = false;
-            }
-        })();
-    }, [phase, submitting, finishCalibration, stop, setStatusMessage, navigate]);
+        const timer = window.setTimeout(() => {
+            finishCalibration();
+            navigate("/exam/student/section", { replace: true });
+        }, 0);
+        return () => window.clearTimeout(timer);
+    }, [phase, submitting, finishCalibration, setStatusMessage, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -76,13 +73,19 @@ const StudentDetailsFilling = () => {
             return;
         }
 
-        if (!formData.session || !formData.session.trim()) {
-            toast.error("Please enter the session");
+        if (!formData.batch || !formData.batch.trim()) {
+            toast.error("Please enter your batch");
             return;
         }
 
-        if (!formData.batch || !formData.batch.trim()) {
-            toast.error("Please enter your batch");
+        if (!exam?.session?.trim()) {
+            toast.error("This exam has no academic session configured. Contact your instructor.");
+            return;
+        }
+
+        if (!exam?._id) {
+            toast.error("Exam session expired. Please enter your exam code again.");
+            navigate("/exam");
             return;
         }
 
@@ -107,7 +110,6 @@ const StudentDetailsFilling = () => {
             return;
         }
 
-        // Request fullscreen here (synchronously, inside the click gesture) so the browser allows it. By the time we navigate to ExamSection the tab is already fullscreen.
         try {
             const elem = document.documentElement;
             const req =
@@ -119,9 +121,31 @@ const StudentDetailsFilling = () => {
             console.error("Fullscreen request failed:", err);
         }
 
-        // Kick off details submission and camera calibration in parallel.
-        submitPromiseRef.current = submitStudentDetails(formData);
         setSubmitting(true);
+        handledRef.current = false;
+        registrationOkRef.current = false;
+
+        const res = await submitStudentDetails({
+            ...formData,
+            examId: exam._id,
+            batch: formData.batch.trim(),
+        });
+        if (!res?.success) {
+            toast.error(res?.error || "Failed to submit details");
+            stop();
+            setSubmitting(false);
+            return;
+        }
+
+        if (!res.student || !res.question?.questions?.length) {
+            toast.error("Could not load the question paper. Please try again.");
+            stop();
+            setSubmitting(false);
+            return;
+        }
+
+        registrationOkRef.current = true;
+        setStatusMessage("Calibrating camera — hold still and look at the screen…");
         startCalibration();
     }
 
@@ -190,6 +214,26 @@ const StudentDetailsFilling = () => {
                             unit={new Date(exam.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         />
                     </div>
+                    <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <InfoTile
+                            icon={<Calendar className="w-4 h-4" />}
+                            accent="emerald"
+                            label="Session"
+                            value={exam.session || "N/A"}
+                        />
+                        <InfoTile
+                            icon={<Users className="w-4 h-4" />}
+                            accent="indigo"
+                            label="Branch"
+                            value={exam.branch || "N/A"}
+                        />
+                        <InfoTile
+                            icon={<FileText className="w-4 h-4" />}
+                            accent="violet"
+                            label="Semester"
+                            value={exam.semester || "N/A"}
+                        />
+                    </div>
                 </div>
 
                 <div className="rounded-2xl overflow-hidden bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10">
@@ -231,31 +275,6 @@ const StudentDetailsFilling = () => {
                                     inputClass={inputClass}
                                 />
                                 <FormField
-                                    label="College ID"
-                                    required
-                                    icon={<Hash className="w-5 h-5" />}
-                                    name="collegeId"
-                                    value={formData.collegeId}
-                                    onChange={handleChange}
-                                    placeholder="Enter college ID"
-                                    maxLength={16}
-                                    inputClass={inputClass}
-                                />
-                            </div>
-
-                            <div className="grid md:grid-cols-2 gap-6">
-                                <FormField
-                                    label="Session"
-                                    required
-                                    icon={<Calendar className="w-5 h-5" />}
-                                    name="session"
-                                    value={formData.session}
-                                    onChange={handleChange}
-                                    placeholder="Autumn 2025"
-                                    maxLength={15}
-                                    inputClass={inputClass}
-                                />
-                                <FormField
                                     label="Batch"
                                     required
                                     icon={<Users className="w-5 h-5" />}
@@ -268,13 +287,25 @@ const StudentDetailsFilling = () => {
                                 />
                             </div>
 
+                            <FormField
+                                label="College ID"
+                                required
+                                icon={<Hash className="w-5 h-5" />}
+                                name="collegeId"
+                                value={formData.collegeId}
+                                onChange={handleChange}
+                                placeholder="Enter college ID"
+                                maxLength={16}
+                                inputClass={inputClass}
+                            />
+
                             <div className="pt-2">
                                 <button
                                     onClick={handleSubmit}
                                     disabled={submitting}
                                     className="w-full bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white py-4 px-6 rounded-xl font-semibold text-base shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-200 hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                                 >
-                                    {submitting ? "Calibrating camera…" : "Proceed to Examination"}
+                                    {submitting ? "Registering & calibrating…" : "Proceed to Examination"}
                                 </button>
                             </div>
 
@@ -317,7 +348,7 @@ function InfoTile({ icon, accent = "indigo", label, value, unit }) {
     );
 }
 
-function FormField({ label, required, icon, name, value, onChange, placeholder, maxLength, inputClass }) {
+function FormField({ label, required, icon, name, value, onChange, placeholder, maxLength, inputClass, readOnly }) {
     return (
         <div>
             <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider">
@@ -334,7 +365,8 @@ function FormField({ label, required, icon, name, value, onChange, placeholder, 
                     onChange={onChange}
                     placeholder={placeholder}
                     maxLength={maxLength}
-                    className={inputClass}
+                    readOnly={readOnly}
+                    className={`${inputClass}${readOnly ? " opacity-80 cursor-not-allowed" : ""}`}
                 />
             </div>
         </div>

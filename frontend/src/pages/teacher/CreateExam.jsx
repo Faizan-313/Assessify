@@ -13,6 +13,9 @@ export default function CreateExam() {
         description: "",
         duration: "",
         examCode: "",
+        branch: "",
+        semester: "",
+        session: "",
         startTime: "",
         endTime: ""
     });
@@ -59,6 +62,9 @@ export default function CreateExam() {
                         description: "",
                         duration: "",
                         examCode: "",
+                        branch: "",
+                        semester: "",
+                        session: "",
                         startTime: "",
                         endTime: ""
                     });
@@ -230,6 +236,9 @@ export default function CreateExam() {
                     description: "",
                     duration: "",
                     examCode: "",
+                    branch: "",
+                    semester: "",
+                    session: "",
                     startTime: "",
                     endTime: ""
                 });
@@ -503,7 +512,7 @@ export default function CreateExam() {
                                 type="text"
                                 id="exam-title"
                                 name="title"
-                                placeholder="e.g., Data Structures Final Exam"
+                                placeholder="Data Structures Final Exam"
                                 value={examDetails.title}
                                 onChange={handleExamChange}
                                 className={inputClass}
@@ -528,6 +537,51 @@ export default function CreateExam() {
                         </div>
 
                         <div>
+                            <label htmlFor="exam-branch" className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider">
+                                Branch
+                            </label>
+                            <input
+                                type="text"
+                                id="exam-branch"
+                                name="branch"
+                                placeholder="CSE"
+                                value={examDetails.branch}
+                                onChange={handleExamChange}
+                                className={inputClass}
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="exam-semester" className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider">
+                                Semester
+                            </label>
+                            <input
+                                type="number"
+                                id="exam-semester"
+                                name="semester"
+                                placeholder="8"
+                                value={examDetails.semester}
+                                onChange={handleExamChange}
+                                className={inputClass}
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="exam-session" className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider">
+                                Session
+                            </label>
+                            <input
+                                type="text"
+                                id="exam-session"
+                                name="session"
+                                placeholder="Spring 2026"
+                                value={examDetails.session}
+                                onChange={handleExamChange}
+                                className={inputClass}
+                            />
+                        </div>
+
+                        <div className="md:col-span-2">
                             <label htmlFor="exam-code" className="text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider flex items-center gap-1">
                                 <FileLock2 className="w-3.5 h-3.5" />
                                 Exam Code

@@ -3,6 +3,7 @@ import { ExamSubmission } from "../models/examSubmission.model.js";
 import { QuestionPaper } from "../models/questions.model.js";
 import { Student } from "../models/student.model.js";
 import { Violation } from "../models/violation.model.js";
+import { pickExamPublicFields } from "../utils/examMetadata.js";
 
 
 const dashboardData = async (req, res) => {
@@ -26,16 +27,8 @@ const dashboardData = async (req, res) => {
         
         // Format response without additional queries
         const formattedExams = exams.map((exam) => ({
-            _id: exam._id,
-            title: exam.title,
-            examCode: exam.examCode,
-            description: exam.description,
-            duration: exam.duration,
-            totalMarks: exam.totalMarks,
-            startTime: exam.startTime,
-            endTime: exam.endTime,
+            ...pickExamPublicFields(exam),
             questions: exam.questionPaper?.questions || [],
-            createdAt: exam.createdAt,
         }));
 
         return res.status(200).json({
@@ -61,7 +54,7 @@ const studentList = async (req, res) => {
         const submissions = await ExamSubmission.find({ examId })
             .populate({
                 path: "studentId",
-                select: "name rollNumber collegeId batch session _id"
+                select: "name rollNumber collegeId batch _id"
             })
             .populate({
                 path: "examId",

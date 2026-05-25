@@ -16,6 +16,12 @@ const violationSchema = new mongoose.Schema({
         enum: ["active", "paused", "terminated", "submitted"],
         default: "active"
     },
+    studentDetails: {
+        name: { type: String, trim: true },
+        rollNumber: { type: String, trim: true },
+        collegeId: { type: String, trim: true },
+        batch: { type: Number },
+    },
     violations: [
         {
             type: {

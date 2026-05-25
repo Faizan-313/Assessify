@@ -6,6 +6,9 @@ const ExamSchema = new mongoose.Schema({
         required: true 
     },
     description: String,
+    branch: { type: String, required: true, trim: true },
+    semester: { type: String, required: true, trim: true },
+    session: { type: String, required: true, trim: true },
     duration: { 
         type: Number, 
         required: true 

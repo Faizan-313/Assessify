@@ -488,7 +488,7 @@ export default function MonitorExam() {
                                                                                 <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
                                                                                     <span>{student.studentDetails?.rollNumber || "N/A"}</span>
                                                                                     <span>{student.studentDetails?.collegeId || "N/A"}</span>
-                                                                                    <span>{student.studentDetails?.session || "N/A"}</span>
+                                                                                    <span>{examDetails?.session || "N/A"}</span>
                                                                                     <span>{student.studentDetails?.batch || "N/A"}</span>
                                                                                 </div>
                                                                             </div>

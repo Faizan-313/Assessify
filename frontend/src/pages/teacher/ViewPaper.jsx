@@ -418,6 +418,24 @@ function ViewPaper() {
                                     </p>
                                 </div>
                                 <div>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Semester</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                        {exam.semester || "N/A"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Session</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                        {exam.session || "N/A"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Branch</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                        {exam.branch || "N/A"}
+                                    </p>
+                                </div>
+                                <div>
                                     <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Duration</p>
                                     <p className="font-semibold text-gray-900 dark:text-gray-100">
                                         {exam.duration} minutes
@@ -522,10 +540,6 @@ function ViewPaper() {
                                 <div>
                                     <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">Batch</p>
                                     <p className="font-semibold text-gray-900 dark:text-gray-100">{student.batch}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">Session</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{student.session}</p>
                                 </div>
                             </div>
                         </div>

@@ -66,12 +66,6 @@ function StudentRow({ student, onEvaluate, index }) {
             </td>
 
             <td className="px-3 py-3">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {student.session}
-                </p>
-            </td>
-
-            <td className="px-3 py-3">
                 <div className="flex flex-col gap-0.5">
                     <p className={`text-sm font-bold ${getGradeColor(percentage)}`}>
                         {totalScore}/{totalMarks}
@@ -143,9 +137,6 @@ export function StudentTableHeader() {
                 </th>
                 <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                     Batch
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                    Session
                 </th>
                 <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
                     Marks

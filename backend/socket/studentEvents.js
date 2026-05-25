@@ -47,8 +47,17 @@ export default function registerStudentEvents(io, socket) {
                 examId,
                 studentId,
                 violation,
-                studentDetails
+                studentDetails: rawStudentDetails,
             } = payload;
+
+            const studentDetails = rawStudentDetails
+                ? {
+                      name: rawStudentDetails.name,
+                      rollNumber: rawStudentDetails.rollNumber,
+                      collegeId: rawStudentDetails.collegeId,
+                      batch: rawStudentDetails.batch,
+                  }
+                : undefined;
 
             const clientSaysSubmitted = payload.isSubmitted === true;
 
@@ -60,7 +69,7 @@ export default function registerStudentEvents(io, socket) {
                 return;
             }
 
-            if (!studentId || !examId || !violation?.type) {
+            if (!studentId || !examId || !violation?.type || !studentDetails) {
                 console.warn("Invalid violation payload:", payload);
                 return;
             }

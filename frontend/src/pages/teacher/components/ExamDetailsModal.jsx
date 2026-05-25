@@ -195,6 +195,24 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                 </span>
                             </div>
                             <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Branch</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                    {exam.branch || "N/A"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Semester</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                    {exam.semester || "N/A"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Session</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                    {exam.session || "N/A"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
                                 <span className="text-gray-600 dark:text-gray-400">Exam Code</span>
                                 <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
                                     {exam.examCode}
