@@ -91,26 +91,19 @@ async function evaluateWithAi({ question, answerText, kind }) {
                     : typeof parsed?.rationale === "string"
                         ? parsed.rationale
                         : "";
-        const feedback =
-            feedbackRaw.trim() ||
-            "(Model returned no feedback text.)";
+        const feedback = feedbackRaw.trim() || "(Model returned no feedback text.)";
 
-        const rawForLog =
-            raw.length > 8000 ? `${raw.slice(0, 8000)}… [truncated ${raw.length} chars]` : raw;
+        const rawForLog = raw.length > 8000 ? `${raw.slice(0, 8000)}… [truncated ${raw.length} chars]` : raw;
 
-        console.log(`[auto-eval] questionId=${qid} model raw JSON:`, rawForLog);
+        // console.log(`[auto-eval] questionId=${qid} model raw JSON:`, rawForLog);
 
         return { status: "done", marksObtained, feedback };
     } catch (error) {
         const status = error?.status;
         if (status === 404) {
-            console.error(
-                `evaluateWithAi: model "${GEMINI_GRADER_MODEL}" is not available for this API key (404). `
-            );
+            console.error(`evaluateWithAi: model "${GEMINI_GRADER_MODEL}" is not available for this API key (404). `);
         } else if (status === 429) {
-            console.error(
-                "evaluateWithAi: quota/rate limit (429) persists after retries. "
-            );
+            console.error("evaluateWithAi: quota/rate limit (429) persists after retries. ");
         }
         console.error("Error in evaluateWithAi function:", error);
         return { status: "error", marksObtained: 0 };
