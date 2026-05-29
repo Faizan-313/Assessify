@@ -1,6 +1,6 @@
 import express from "express";
 import authenticateToken from "../middlewares/auth.middleware.js";
-import { startAutoEvaluation, getAutoEvaluationStatus } from "../controllers/autoEvaluation.controller.js";
+import { startAutoEvaluation, getAutoEvaluationStatus } from "../controllers/auto-evaluation/autoEvaluation.controller.js";
 
 // mergeParams: true so :examId from the parent mount path (/api/v1/:examId/auto-evaluation)
 // is visible to the handlers via req.params.examId.

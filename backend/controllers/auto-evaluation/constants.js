@@ -1,0 +1,20 @@
+const GEMINI_GRADER_MODEL = ( process.env.GEMINI_GRADER_MODEL).trim();
+
+// Rate limits by plan. 
+const GEMINI_MAX_RPM = Math.max(1, Number.parseInt(process.env.GEMINI_MAX_RPM || "5", 10) || 5);
+
+// Minimum ms between generateContent calls to satisfy RPM (60s / max requests per minute). 
+const GEMINI_RPM_MIN_INTERVAL_MS = Math.ceil(60_000 / GEMINI_MAX_RPM);
+
+// extra delay on top of RPM spacing (ms). 
+const GEMINI_REQUEST_DELAY_EXTRA_MS = Math.max(0, Number.parseInt(process.env.GEMINI_REQUEST_DELAY_MS || "0", 10) || 0);
+
+const GEMINI_REQUEST_DELAY_MS = Math.max(GEMINI_RPM_MIN_INTERVAL_MS, GEMINI_REQUEST_DELAY_EXTRA_MS);
+
+export {
+    GEMINI_GRADER_MODEL,
+    GEMINI_MAX_RPM,
+    GEMINI_RPM_MIN_INTERVAL_MS,
+    GEMINI_REQUEST_DELAY_EXTRA_MS,
+    GEMINI_REQUEST_DELAY_MS
+}
