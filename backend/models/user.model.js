@@ -54,6 +54,7 @@ TeacherSchema.methods.generateAccessToken = function(){
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
+            algorithm: "HS256",
             expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
@@ -66,6 +67,7 @@ TeacherSchema.methods.generateRefreshToken = function(){
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
+            algorithm: "HS256",
             expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }
     )

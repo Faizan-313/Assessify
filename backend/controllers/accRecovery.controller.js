@@ -39,8 +39,10 @@ const verifyEmail = async (req, res) => {
         const tempToken = jwt.sign({
             _id: user._id,
             email: user.email
-        },process.env.TEMP_TOKEN_SECRET,
+        },
+        process.env.TEMP_TOKEN_SECRET,
         {
+            algorithm: "HS256",
             expiresIn: "5m"
         })
 

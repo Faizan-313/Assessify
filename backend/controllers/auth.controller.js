@@ -134,13 +134,17 @@ const refreshAccessToken = async (req, res) => {
         if (!incomingRefreshToken) {
             return res.status(401).json({ message: "Unauthorized request" });
         }
-
-        let decodedToken;
-        try {
-            decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
-        } catch (err) {
-            void err;
-            return res.status(401).json({ message: "Invalid or expired refresh token" });
+    
+        const decodedToken = jwt.verify( incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET, { algorithm: "HS256" } )
+        
+        const user = await User.findById( decodedToken?._id )
+        
+        if(!user) {
+            return res.status(401).json({ message: "invalid refresh token" })
+        }
+    
+        if( incomingRefreshToken !== user?.refreshToken ){
+            return res.status(401).json({ message: "refresh token is expired or used" })
         }
 
         // Atomically rotate the refresh token: this only succeeds if the incoming

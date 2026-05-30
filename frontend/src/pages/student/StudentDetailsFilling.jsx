@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { flushSync } from 'react-dom'
-import { useExam } from '../../context/ExamContext'
+import { useExam } from '../../context/ExamContextCore'
 import { useProctoringCtx } from '../../context/proctoringContextCore'
 import toast from 'react-hot-toast'
 import { User, Hash, Calendar, Users, Clock, FileText, Target, Award, AlertCircle } from 'lucide-react'

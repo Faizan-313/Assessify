@@ -1,7 +1,7 @@
 import { Mail, Lock, User, UserPlus, Eye, EyeClosed } from "lucide-react"
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContextCore";
 import { useNavigate } from "react-router-dom";
 import logo from "/logo3.svg";
 
@@ -86,7 +86,7 @@ function Signup() {
                         <p className="text-[#1b4242]">Join us and start your journey</p>
                     </div>
 
-                    <div className="space-y-5">
+                    <form className="space-y-5" onSubmit={handleSubmit} noValidate>
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-900 mb-2">
                                 Full Name
@@ -97,6 +97,7 @@ function Signup() {
                                     type="text"
                                     id="name"
                                     name="name"
+                                    autoComplete="username"
                                     value={formData.name}
                                     onChange={handleChange}
                                     placeholder="Enter your full name"
@@ -116,6 +117,7 @@ function Signup() {
                                     type="email"
                                     id="email"
                                     name="email"
+                                    autoComplete="email"
                                     value={formData.email}
                                     onChange={handleChange}
                                     placeholder="Enter your email"
@@ -143,6 +145,7 @@ function Signup() {
                                     placeholder="Create a password"
                                     min={6}
                                     required
+                                    autoComplete="current-password"
                                     className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-3 text-gray-700 bg-gray-50 focus:bg-white shadow-sm focus:border-[#5c8374] focus:ring-2 focus:ring-[#5c8374] focus:outline-none transition-all"
                                 />
                             </div>
@@ -167,8 +170,7 @@ function Signup() {
                         </div>
 
                         <button
-                            type="button"
-                            onClick={handleSubmit}
+                            type="submit"
                             className="w-full rounded-lg bg-gradient-to-r from-[#5c8374] to-[#1b4242] hover:from-[#1b4242] hover:to-[#092635] py-3 text-white font-semibold shadow-lg hover:shadow-[#5c8374]/50 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                             disabled={loading}
                         >
@@ -187,7 +189,7 @@ function Signup() {
                                 </span>
                             )}
                         </button>
-                    </div>
+                    </form>
 
                     <div className="relative my-4">
                         <div className="absolute inset-0 flex items-center">

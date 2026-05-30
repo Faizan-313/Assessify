@@ -115,16 +115,6 @@ function Home() {
                 />
 
                 <div className="relative z-10 max-w-5xl mx-auto px-6 pt-28 pb-16 text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-sm">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-                        </span>
-                        <span className="text-gray-300">
-                            AI Proctoring · Lockdown Mode · Live Monitoring
-                        </span>
-                    </div>
-
                     <div className="mb-8 flex justify-center">
                         <img
                             src="/logo3.svg"
@@ -376,6 +366,14 @@ function Home() {
                                         Features
                                     </a>
                                 </li>
+                                <li>
+                                    <a
+                                        href="/docs"
+                                        className="text-gray-400 hover:text-indigo-300 transition-colors"
+                                    >
+                                        Documentation
+                                    </a>
+                                </li>
                             </ul>
                         </div>
 
@@ -412,9 +410,7 @@ function Home() {
                                     <FaTwitter />
                                 </a>
                                 <a
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    href="https://mail.google.com/mail/?view=cm&fs=1&to=codefusion.iust@gmail.com"
+                                    href="mailto:assessify.iust@gmail.com"
                                     aria-label="Email"
                                     className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all"
                                 >

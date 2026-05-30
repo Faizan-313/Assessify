@@ -1,9 +1,7 @@
-import { createContext, useState, useContext, useCallback } from "react";
+import { useState, useCallback } from "react";
 import toast from "react-hot-toast";
 import { apiCall } from "../api/api";
-
-const TeacherContext = createContext();
-export const useTeacher = () => useContext(TeacherContext);
+import { TeacherContext } from "./TeacherContextCore";
 
 const url = import.meta.env.VITE_API_URL;
 
@@ -66,8 +64,26 @@ export const TeacherProvider = ({ children }) => {
     }, []);
 
     const removeExam = useCallback((id) => {
-        setExams(prev => prev.filter(exam => exam._id !== id));
+        setExams((prev) => prev.filter((exam) => exam._id !== id));
     }, []);
+
+    const deleteExam = useCallback(async (id) => {
+        try {
+            const res = await apiCall(`${import.meta.env.VITE_API_URL}/api/v1/exams/${id}`, "DELETE");
+            if (res?.status === 200) {
+                removeExam(id);
+                toast.success("Exam deleted successfully.");
+                setExamsError(null);
+            } else {
+                setExamsError("Failed to delete exam");
+                toast.error("Failed to delete exam");
+            }
+        } catch (err) {
+            console.error("Failed to delete exam:", err);
+            setExamsError("Failed to delete exam");
+            toast.error("Failed to delete exam");
+        }
+    }, [removeExam]);
 
     return (
         <TeacherContext.Provider
@@ -81,6 +97,7 @@ export const TeacherProvider = ({ children }) => {
                 examsLoading,
                 examsError,
                 fetchExams,
+                deleteExam,
                 removeExam,
             }}
         >
@@ -88,3 +105,4 @@ export const TeacherProvider = ({ children }) => {
         </TeacherContext.Provider>
     );
 };
+

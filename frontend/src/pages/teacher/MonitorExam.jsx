@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { AlertTriangle, Loader2, User, Clock, Shield, XCircle, ChevronDown, ChevronUp, Eye, Users, Smartphone, UserX } from "lucide-react";
 import toast from "react-hot-toast";
 import ReasonWindow from "./components/PauseReasonWindow";
-import { useExam } from "../../context/ExamContext";
+import { useExam } from "../../context/ExamContextCore";
 
 export default function MonitorExam() {
     const { examId } = useParams();

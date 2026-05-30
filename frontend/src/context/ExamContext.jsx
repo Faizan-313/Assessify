@@ -1,11 +1,6 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-
-const ExamContext = createContext();
-
-export function useExam() {
-    return useContext(ExamContext);
-}
+import { ExamContext } from "./ExamContextCore";
 
 const url = import.meta.env.VITE_API_URL;
 
@@ -104,3 +99,4 @@ export function ExamProvider({ children }) {
         </ExamContext.Provider>
     );
 }
+
