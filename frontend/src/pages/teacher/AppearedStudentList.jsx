@@ -1,33 +1,106 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    Search, ClipboardCheck, AlertCircle, Loader2, ChevronLeft, ChevronRight
+    Search, ClipboardCheck, AlertCircle, Loader2, ChevronLeft, ChevronRight, Sparkles, Clock, Lock, ShieldCheck, AlertTriangle,
+    Link
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+
+import toast from "react-hot-toast";
+import { apiCall } from "../../api/api";
 import { useTeacher } from "../../context/TeacherContextCore";
 import { useExam } from "../../context/ExamContextCore";
+
 import StudentRow, { StudentTableHeader } from "./components/StudentRow";
+import { isSubmissionGraded } from "../../utils/submissionEvaluateStatus";
+
+const STATUS_POLL_INTERVAL_MS = 5000;
 
 function AppearedStudentList() {
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [evaluationStatus, setEvaluationStatus] = useState(null);
+    const [statusReady, setStatusReady] = useState(false);
+    const [startingEvaluation, setStartingEvaluation] = useState(false);
+    const [showCompleteModal, setShowCompleteModal] = useState(false);
+    const [completing, setCompleting] = useState(false);
+    const pollTimerRef = useRef(null);
     const { examId } = useParams();
     const navigate = useNavigate();
     const { fetchStudents, students, studentsLoading, studentsError, studentsPagination } = useTeacher();
     const { particularExamDetails, fetchParticularExamDetails } = useExam();
 
-    useEffect(() => {
-        if (examId) {
-            fetchStudents(examId, currentPage);
-            fetchParticularExamDetails(examId);
-        }
-    }, [examId, currentPage]);
-    
     const exam = particularExamDetails || {};
 
+    const inProgress = evaluationStatus === "in_progress";
+    const isCompleted = evaluationStatus === "completed";
+    const evaluating = inProgress || startingEvaluation;
+    
+    // The auto-eval button is locked only while an auto evaluation run is actually happening, or after the exam has been finalized.
+    const canStart = statusReady && !inProgress && !startingEvaluation && !isCompleted;
+
+    const fetchEvaluationStatus = useCallback(async () => {
+        if (!examId) return null;
+        try {
+            const res = await apiCall(
+                `${import.meta.env.VITE_API_URL}/api/v1/${examId}/auto-evaluation/status`,
+                "GET"
+            );
+            const next = res?.data?.evaluationStatus ?? null;
+            setEvaluationStatus(next);
+            setStatusReady(true);
+            return next;
+        } catch (err) {
+            console.warn("Could not fetch auto evaluation status:", err);
+            setStatusReady(true);
+            return null;
+        }
+    }, [examId]);
+
+    useEffect(() => {
+        if (!examId) return;
+        fetchStudents(examId, currentPage);
+        fetchParticularExamDetails(examId);
+        fetchEvaluationStatus();
+    }, [examId, currentPage, fetchEvaluationStatus]);
+
+    useEffect(() => {
+        if (!inProgress) {
+            if (pollTimerRef.current) {
+                clearInterval(pollTimerRef.current);
+                pollTimerRef.current = null;
+            }
+            return;
+        }
+
+        pollTimerRef.current = setInterval(async () => {
+            const next = await fetchEvaluationStatus();
+            if (next && next !== "in_progress") {
+                clearInterval(pollTimerRef.current);
+                pollTimerRef.current = null;
+                // Add a small delay to ensure database writes are fully committed
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await fetchStudents(examId, currentPage);
+                if (next === "auto_evaluated") {
+                    toast.success("Auto evaluation finished");
+                } else if (next === "failed") {
+                    toast.error("Auto evaluation failed. You can retry.");
+                }
+            }
+        }, STATUS_POLL_INTERVAL_MS);
+
+        return () => {
+            if (pollTimerRef.current) {
+                clearInterval(pollTimerRef.current);
+                pollTimerRef.current = null;
+            }
+        };
+    }, [inProgress, fetchEvaluationStatus, fetchStudents, examId, currentPage]);
+
     const handleEvaluate = (studentId) => {
+        if (evaluating) return;
         navigate(`/teacher/evalvate/${examId}/${studentId}`);
     };
-    
+
     const filteredStudents = Array.isArray(students)
         ? students.filter(
             (s) =>
@@ -35,6 +108,13 @@ function AppearedStudentList() {
                 s.rollNumber?.toLowerCase().includes(search.toLowerCase())
         )
         : [];
+
+    const pendingCount = useMemo(() => {
+        if (!Array.isArray(students)) return 0;
+        return students.filter(
+            (s) => !isSubmissionGraded(s?.examsAttempted?.[0]?.evaluateStatus)
+        ).length;
+    }, [students]);
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
@@ -45,6 +125,82 @@ function AppearedStudentList() {
     const handleNextPage = () => {
         if (currentPage < studentsPagination.pages) {
             setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const handleAutoEvaluation = async () => {
+        if (!canStart || pendingCount === 0) return;
+        const confirmed = await new Promise((resolve) => {
+            const id = toast(() => (
+                <div className="max-w-md">
+                    <div className="font-medium">Auto Evaluate {pendingCount} pending paper{pendingCount > 1 ? "s" : ""} for "{exam.title || "this exam"}"?</div>
+                    <div className="text-sm mt-1">This may take several hours. Manual evaluation will be locked until it finishes.</div>
+                    <div className="flex gap-2 mt-3">
+                        <button
+                            className="px-3 py-1 cursor-pointer hover:bg-emerald-700 rounded bg-emerald-600 text-white text-sm"
+                            onClick={() => { toast.dismiss(id); resolve(true); }}
+                        >Start</button>
+                        <button
+                            className="px-3 py-1 cursor-pointer hover:bg-gray-300 rounded bg-gray-200 text-sm"
+                            onClick={() => { toast.dismiss(id); resolve(false); }}
+                        >Cancel</button>
+                    </div>
+                </div>
+            ));
+        });
+        if (!confirmed) return;
+
+        try {
+            setStartingEvaluation(true);
+            const res = await apiCall(
+                `${import.meta.env.VITE_API_URL}/api/v1/${examId}/auto-evaluation/start`,
+                "POST"
+            );
+            if (res.status === 202 || res.status === 200) {
+                setEvaluationStatus(res.data?.evaluationStatus || "in_progress");
+                toast.success("Auto evaluation started");
+            }
+        } catch (error) {
+            console.error("Failed to start auto evaluation:", error);
+            const message =
+                error?.response?.data?.message || "Could not start auto evaluation";
+            if (error?.response?.data?.evaluationStatus) {
+                setEvaluationStatus(error.response.data.evaluationStatus);
+            }
+            toast.error(message);
+        } finally {
+            setStartingEvaluation(false);
+        }
+    };
+
+    const canComplete =
+        statusReady && !inProgress && !isCompleted && !completing && pendingCount === 0;
+
+    const handleCompleteEvaluation = async () => {
+        if (!canComplete) return;
+        try {
+            setCompleting(true);
+            const res = await apiCall(
+                `${import.meta.env.VITE_API_URL}/api/v1/teacher/exam/complete`,
+                "POST",
+                { data: { examId } }
+            );
+            if (res.status === 200) {
+                setEvaluationStatus(res.data?.evaluationStatus || "completed");
+                setShowCompleteModal(false);
+                toast.success(res.data?.message || "Evaluation finalized");
+                await fetchStudents(examId, currentPage);
+            }
+        } catch (error) {
+            console.error("Failed to finalize evaluation:", error);
+            const message =
+                error?.response?.data?.message || "Could not finalize evaluation";
+            if (error?.response?.data?.evaluationStatus) {
+                setEvaluationStatus(error.response.data.evaluationStatus);
+            }
+            toast.error(message);
+        } finally {
+            setCompleting(false);
         }
     };
 
@@ -59,7 +215,49 @@ function AppearedStudentList() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] via-[#e8f5f3] to-[#dff1ee] dark:from-[#092635] dark:via-[#1b4242] dark:to-[#0d3a47] py-8 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto pt-20">
+            {inProgress && (
+                <div
+                    role="alertdialog"
+                    aria-modal="true"
+                    aria-live="assertive"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm px-4"
+                >
+                    <div className="max-w-md w-full rounded-2xl border border-indigo-500/30 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+                        <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-emerald-500 to-indigo-500 animate-pulse" />
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-emerald-700 flex items-center justify-center shadow-md">
+                                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                                        Auto Evaluation in Progress
+                                    </h2>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        for {exam.title || "this exam"}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                The AI is grading every text and code answer for this exam.
+                                Manual evaluation is locked until the job finishes — please keep
+                                this page open or come back later.
+                            </p>
+                            <div className="flex items-center justify-between gap-4">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                    <Lock className="w-3.5 h-3.5" />
+                                    Editing is blocked while this is running.
+                                </p>
+                                <a href="/dashboard" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap">
+                                    Go to Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className={`max-w-7xl mx-auto pt-20 ${inProgress ? "pointer-events-none select-none" : ""}`} aria-hidden={inProgress}>
                 <div className="mb-8">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                         <div>
@@ -76,23 +274,132 @@ function AppearedStudentList() {
                             </p>
                         </div>
 
-                        <div className="relative w-full lg:w-80">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
-                            <input
-                                type="text"
-                                placeholder="Search by name or roll number..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
-                                    bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 
-                                    placeholder-gray-500 dark:placeholder-gray-400
-                                    shadow-sm hover:shadow-md
-                                    focus:ring-2 focus:ring-[#5c8374] focus:border-[#5c8374] dark:focus:ring-[#9ec8b9]
-                                    outline-none transition-all duration-200"
-                            />
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                            <div className="relative w-full sm:w-72">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name or roll number..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
+                                        bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 
+                                        placeholder-gray-500 dark:placeholder-gray-400
+                                        shadow-sm hover:shadow-md
+                                        focus:ring-2 focus:ring-[#5c8374] focus:border-[#5c8374] dark:focus:ring-[#9ec8b9]
+                                        outline-none transition-all duration-200"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleAutoEvaluation}
+                                disabled={!canStart || pendingCount === 0}
+                                title={
+                                    !statusReady
+                                        ? "Checking auto evaluation status..."
+                                        : isCompleted
+                                            ? "Evaluation is finalized"
+                                            : inProgress
+                                                ? "Auto evaluation is already in progress"
+                                                : pendingCount === 0
+                                                    ? "No pending papers to auto-evaluate"
+                                                    : `Auto-evaluate all ${pendingCount} pending paper${pendingCount > 1 ? "s" : ""} for this exam`
+                                }
+                                className="relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-white whitespace-nowrap
+                                    bg-gradient-to-r from-indigo-600 to-emerald-700 hover:from-indigo-700 hover:to-emerald-600
+                                    focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900
+                                    shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer
+                                    disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-md"
+                            >
+                                {!statusReady ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span>Checking status...</span>
+                                    </>
+                                ) : evaluating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span>Evaluating...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-5 h-5" />
+                                        <span>
+                                            {evaluationStatus === "failed"
+                                                ? "Retry Auto Evaluate"
+                                                : "Auto Evaluate"}
+                                        </span>
+                                        {pendingCount > 0 && (
+                                            <span className="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 text-xs font-bold rounded-full bg-white/20 backdrop-blur-sm">
+                                                {pendingCount}
+                                            </span>
+                                        )}
+                                    </>
+                                )}
+                            </button>
+
+                            <button
+                                onClick={() => canComplete && setShowCompleteModal(true)}
+                                disabled={!canComplete}
+                                title={
+                                    !statusReady
+                                        ? "Checking evaluation status..."
+                                        : isCompleted
+                                            ? "Evaluation is already finalized"
+                                            : inProgress
+                                                ? "Auto evaluation is running"
+                                                : pendingCount > 0
+                                                    ? `${pendingCount} student${pendingCount > 1 ? "s are" : " is"} still pending`
+                                                    : "Finalize evaluation. Results will be locked."
+                                }
+                                className="relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-white whitespace-nowrap
+                                    bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-600
+                                    focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900
+                                    shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer
+                                    disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-md"
+                            >
+                                {isCompleted ? (
+                                    <>
+                                        <Lock className="w-5 h-5" />
+                                        <span>Finalized</span>
+                                    </>
+                                ) : completing ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <span>Finalizing...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ShieldCheck className="w-5 h-5" />
+                                        <span>Complete Evaluation</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
+
+                {isCompleted && (
+                    <div
+                        role="status"
+                        className="mb-6 overflow-hidden rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-gray-800 dark:to-teal-950/40 shadow-md"
+                    >
+                        <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-500" />
+                        <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center shadow-md">
+                                <Lock className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+                                    Evaluation Finalized
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                    Results for this exam are locked. Marks can no longer be edited.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="mb-8">
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden">
@@ -199,6 +506,7 @@ function AppearedStudentList() {
                                             student={student}
                                             index={index}
                                             onEvaluate={handleEvaluate}
+                                            autoEvaluating={evaluating}
                                         />
                                     ))}
                                 </tbody>
@@ -240,6 +548,72 @@ function AppearedStudentList() {
                     </div>
                 )}
             </div>
+
+            {showCompleteModal && (
+                <div
+                    role="alertdialog"
+                    aria-modal="true"
+                    aria-labelledby="complete-eval-title"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm p-4"
+                >
+                    <div className="max-w-md w-full rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
+                        <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-500" />
+                        <div className="p-6 space-y-5">
+                            <div className="flex items-start gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center flex-shrink-0">
+                                    <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div>
+                                    <h2 id="complete-eval-title" className="text-lg font-bold text-gray-900 dark:text-white">
+                                        Finalize Evaluation?
+                                    </h2>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {exam.title || "this exam"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                                <p>
+                                    Once finalized, the results for this exam will be{" "}
+                                    <span className="font-semibold text-gray-900 dark:text-white">locked</span>.
+                                    Neither auto evaluation nor manual marks can be changed afterwards.
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    All {students.length} student paper{students.length === 1 ? "" : "s"} have been evaluated and are ready to be finalized.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowCompleteModal(false)}
+                                    disabled={completing}
+                                    className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCompleteEvaluation}
+                                    disabled={completing}
+                                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-600 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {completing ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Finalizing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ShieldCheck className="w-4 h-4" />
+                                            Yes, finalize
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

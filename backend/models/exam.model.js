@@ -41,6 +41,18 @@ const ExamSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, 
         ref: "QuestionPaper" 
     },
+    evaluationStatus: {
+        type: String,
+        enum: [
+            "not_started",
+            "in_progress",
+            "auto_evaluated",
+            "manually_evaluated",
+            "completed",
+            "failed"
+        ],
+        default: "not_started"
+    },
     createdAt: { 
         type: Date, 
         default: Date.now 

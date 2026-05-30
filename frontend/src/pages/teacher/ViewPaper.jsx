@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import { apiCall } from "../../api/api";
 import { useExam } from "../../context/ExamContextCore";
 import MarksInput from "./components/MarksInput.jsx";
+import { getSubmissionStatusLabel } from "../../utils/submissionEvaluateStatus";
 
 // Utility Functions
 const sanitizeAndFormatAnswer = (answer) => {
@@ -247,6 +248,19 @@ function ViewPaper() {
     }, [handleValidation, localExamAttempt, examId, studentId, comments, navigate]);
 
     // Render Functions
+    const renderAiGraderNote = (studentAnswer) => {
+        const text = studentAnswer?.aiFeedback?.trim();
+        if (!text) return null;
+        return (
+            <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/90 dark:bg-violet-950/35 px-3 py-2 text-sm text-gray-800 dark:text-gray-200 mb-3">
+                <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1 uppercase tracking-wide">
+                    AI grading feedback
+                </p>
+                <p className="leading-relaxed whitespace-pre-wrap">{text}</p>
+            </div>
+        );
+    };
+
     const renderStudentAnswer = useCallback((question, studentAnswer) => {
         const hasAnswer = studentAnswer?.answerText?.trim();
 
@@ -257,6 +271,7 @@ function ViewPaper() {
                         <FileText className="w-4 h-4" />
                         No answer provided
                     </p>
+                    {renderAiGraderNote(studentAnswer)}
                     <MarksInput
                         question={question}
                         studentAnswer={studentAnswer}
@@ -286,6 +301,7 @@ function ViewPaper() {
                             <p className="text-sm text-gray-500 dark:text-gray-400 ml-2">Diagram image</p>
                         </div>
                     )}
+                    {renderAiGraderNote(studentAnswer)}
                     <MarksInput
                         question={question}
                         studentAnswer={studentAnswer}
@@ -333,6 +349,7 @@ function ViewPaper() {
                             </div>
                         </div>
                     )}
+                    {renderAiGraderNote(studentAnswer)}
                     <MarksInput
                         question={question}
                         studentAnswer={studentAnswer}
@@ -350,6 +367,7 @@ function ViewPaper() {
                 <pre className="text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 p-3 rounded-lg text-sm dark:bg-gray-950 bg-white leading-relaxed whitespace-pre-wrap break-words font-mono overflow-auto max-h-96">
                     {sanitizeAndFormatAnswer(studentAnswer.answerText)}
                 </pre>
+                {renderAiGraderNote(studentAnswer)}
                 <MarksInput
                     question={question}
                     studentAnswer={studentAnswer}
@@ -486,10 +504,16 @@ function ViewPaper() {
 
                         {/* Submission Info */}
                         {localExamAttempt && (
-                            <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4 text-sm text-gray-600 dark:text-gray-400 space-y-1">
                                 <p>
                                     <strong>Submitted:</strong> {new Date(localExamAttempt.submittedAt).toLocaleString()}
                                 </p>
+                                {localExamAttempt.evaluateStatus && (
+                                    <p>
+                                        <strong>Submission status:</strong>{" "}
+                                        {getSubmissionStatusLabel(localExamAttempt.evaluateStatus)}
+                                    </p>
+                                )}
                                 {localExamAttempt.evaluatedAt && (
                                     <p>
                                         <strong>Evaluated:</strong> {new Date(localExamAttempt.evaluatedAt).toLocaleString()}

@@ -12,7 +12,12 @@ const QuestionPaperSchema = new mongoose.Schema({
             questionText: { type: String, required: true },
             marks: { type: Number, required: true },
             image: { type: String },
-            options: [String]
+            options: [String],
+            evaluationConfig: {
+                correctOption: Number,
+                referenceAnswer: String,
+                referenceCode: String,
+            }
         },
     ],
 });

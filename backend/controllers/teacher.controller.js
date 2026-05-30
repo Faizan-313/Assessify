@@ -35,6 +35,7 @@ const dashboardData = async (req, res) => {
             startTime: exam.startTime,
             endTime: exam.endTime,
             questions: exam.questionPaper?.questions || [],
+            evaluationStatus: exam.evaluationStatus,
             createdAt: exam.createdAt,
         }));
 
@@ -113,7 +114,7 @@ const studentList = async (req, res) => {
 };
 
 
-const evaluatedPaper = async (req, res) => {
+const evaluatePaper = async (req, res) => {
     try {
         const {
             examId,
@@ -125,6 +126,27 @@ const evaluatedPaper = async (req, res) => {
 
         if (!examId || !studentId || totalScore == null || !Array.isArray(answers)) {
             return res.status(400).json({ message: "Invalid data received" });
+        }
+
+        const exam = await Exam.findById(examId).select("evaluationStatus createdBy");
+        if (!exam) {
+            return res.status(404).json({ message: "Exam not found" });
+        }
+
+        if (String(exam.createdBy) !== String(req.user._id)) {
+            return res.status(403).json({ message: "Not authorized to evaluate this exam" });
+        }
+
+        if (exam.evaluationStatus === "in_progress") {
+            return res.status(409).json({
+                message: "Auto evaluation is currently running. Please wait for it to finish.",
+            });
+        }
+
+        if (exam.evaluationStatus === "completed") {
+            return res.status(400).json({
+                message: "Evaluation has been finalized. Marks can no longer be changed.",
+            });
         }
 
         const studentSubmission = await ExamSubmission.findOne({ examId, studentId });
@@ -156,6 +178,80 @@ const evaluatedPaper = async (req, res) => {
     } catch (error) {
         console.error("Error in storing evaluated paper:", error);
         return res.status(500).json({ message: "Something went wrong" });
+    }
+};
+
+
+const completeEvaluation = async (req, res) => {
+    try {
+        const { examId } = req.body || {};
+
+        if (!examId) {
+            return res.status(400).json({ message: "Exam ID is required" });
+        }
+
+        const exam = await Exam.findById(examId).select("createdBy evaluationStatus");
+        if (!exam) {
+            return res.status(404).json({ message: "Exam not found" });
+        }
+
+        if (String(exam.createdBy) !== String(req.user._id)) {
+            return res.status(403).json({ message: "Not authorized to finalize this exam" });
+        }
+
+        if (exam.evaluationStatus === "in_progress") {
+            return res.status(409).json({
+                message: "Auto evaluation is currently running. Please wait for it to finish.",
+                evaluationStatus: exam.evaluationStatus,
+            });
+        }
+
+        if (exam.evaluationStatus === "completed") {
+            return res.status(200).json({
+                message: "Evaluation is already finalized",
+                evaluationStatus: "completed",
+            });
+        }
+
+        const pendingCount = await ExamSubmission.countDocuments({
+            examId,
+            evaluateStatus: { $nin: ["Evaluated", "AutoEvaluated"] },
+        });
+
+        if (pendingCount > 0) {
+            return res.status(400).json({
+                message: `${pendingCount} student${pendingCount > 1 ? "s are" : " is"} still pending evaluation`,
+                pendingCount,
+                evaluationStatus: exam.evaluationStatus,
+            });
+        }
+
+        // Atomic transition so two concurrent clicks can't both finalize.
+        const updated = await Exam.findOneAndUpdate(
+            {
+                _id: examId,
+                createdBy: req.user._id,
+                evaluationStatus: { $nin: ["in_progress", "completed"] },
+            },
+            { $set: { evaluationStatus: "completed" } },
+            { new: true }
+        ).select("evaluationStatus");
+
+        if (!updated) {
+            const latest = await Exam.findById(examId).select("evaluationStatus").lean();
+            return res.status(409).json({
+                message: "Exam status changed; refresh and try again",
+                evaluationStatus: latest?.evaluationStatus,
+            });
+        }
+
+        return res.status(200).json({
+            message: "Evaluation finalized. Results are now locked.",
+            evaluationStatus: updated.evaluationStatus,
+        });
+    } catch (error) {
+        console.error("Error finalizing evaluation:", error);
+        return res.status(500).json({ message: "Could not finalize evaluation" });
     }
 };
 
@@ -195,6 +291,7 @@ const getStudent = async (req, res) => {
 export {
     dashboardData,
     studentList,
-    evaluatedPaper,
+    evaluatePaper,
+    completeEvaluation,
     getStudent
 }
