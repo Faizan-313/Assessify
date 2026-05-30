@@ -81,8 +81,10 @@ async function evaluateWithAi({ question, answerText, kind }) {
             return { status: "error", marksObtained: 0 };
         }
 
-        // Handle both 'marksObtained' and 'marks_awarded' field names from AI
-        const marksObtained = clampMarks(parsed?.marksObtained ?? parsed?.marks_awarded, maxMarks);
+        // Handle different field names returned by the AI grader.
+        const rawMarks = parsed?.marksObtained ?? parsed?.marks_awarded ?? parsed?.marks_obtained;
+        const marksObtained = clampMarks(rawMarks, maxMarks);
+
         const feedbackRaw =
             typeof parsed?.feedback === "string"
                 ? parsed.feedback
@@ -95,7 +97,8 @@ async function evaluateWithAi({ question, answerText, kind }) {
 
         const rawForLog = raw.length > 8000 ? `${raw.slice(0, 8000)}… [truncated ${raw.length} chars]` : raw;
 
-        // console.log(`[auto-eval] questionId=${qid} model raw JSON:`, rawForLog);
+        // console.log(`model:  `, rawForLog);
+        // console.log("---marksObtained:   ", marksObtained);
 
         return { status: "done", marksObtained, feedback };
     } catch (error) {
