@@ -4,10 +4,12 @@ import {
     Link
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
+
 import toast from "react-hot-toast";
 import { apiCall } from "../../api/api";
-import { useTeacher } from "../../context/TeacherContext";
-import { useExam } from "../../context/ExamContext";
+import { useTeacher } from "../../context/TeacherContextCore";
+import { useExam } from "../../context/ExamContextCore";
+
 import StudentRow, { StudentTableHeader } from "./components/StudentRow";
 import { isSubmissionGraded } from "../../utils/submissionEvaluateStatus";
 
