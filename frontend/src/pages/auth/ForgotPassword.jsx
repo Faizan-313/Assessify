@@ -284,6 +284,7 @@ function ForgotPassword() {
                                             value={formData.password}
                                             onChange={handleChange}
                                             required
+                                            autoComplete="new-password"
                                             className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-3 text-gray-700 bg-gray-50 focus:bg-white shadow-sm focus:border-[#5c8374] focus:ring-2 focus:ring-[#5c8374] focus:outline-none transition-all"
                                         />
                                     </div>
@@ -297,6 +298,7 @@ function ForgotPassword() {
                                             value={formData.confirmPassword}
                                             onChange={handleChange}
                                             required
+                                            autoComplete="new-password"
                                             className="w-full rounded-lg border border-gray-300 py-3 px-3 text-gray-700 bg-gray-50 focus:bg-white shadow-sm focus:border-[#5c8374] focus:ring-2 focus:ring-[#5c8374] focus:outline-none transition-all"
                                         />
                                     </div>

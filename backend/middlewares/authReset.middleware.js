@@ -7,7 +7,7 @@ const authenticateTempToken = (req, res, next) => {
             return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const decoded = jwt.verify(token, process.env.TEMP_TOKEN_SECRET);
+        const decoded = jwt.verify(token, process.env.TEMP_TOKEN_SECRET, { algorithm: "HS256" });
         req.user = decoded;
         next();
     } catch {

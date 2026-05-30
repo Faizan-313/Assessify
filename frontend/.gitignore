@@ -23,6 +23,8 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 
+.vite/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

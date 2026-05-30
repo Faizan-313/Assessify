@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import { flushSync } from "react-dom";
-import { useExam } from "../../context/ExamContext";
+import { useExam } from "../../context/ExamContextCore";
 import { useProctoringCtx } from "../../context/proctoringContextCore";
 import toast from "react-hot-toast";
 import CodeMirror from "@uiw/react-codemirror";

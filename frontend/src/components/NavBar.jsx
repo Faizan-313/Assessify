@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaBars, FaUser, FaSignOutAlt, FaChevronDown, FaTachometerAlt } from 'react-icons/fa';
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContextCore';
 
 function NavBar() {
     const { user, logout } = useAuth();
@@ -37,16 +37,21 @@ function NavBar() {
         navigate('/');
     };
 
-    const isCreateExamPage = location.pathname === "/create-exam" || location.pathname === "/dashboard";
+    const isCreateExamPage =
+        location.pathname === "/create-exam" ||
+        location.pathname === "/dashboard" ||
+        location.pathname === "/docs";
 
     // Navigation links based on auth status
     const navLinks = user
         ? [
             { name: 'Home', href: '/' },
+            { name: 'Docs', href: '/docs' },
             { name: 'Create Exam', href: '/create-exam' },
         ]
         : [
             { name: 'Home', href: '/' },
+            { name: 'Docs', href: '/docs' },
             { name: 'Start Exam', href: '/exam' },
         ];
 

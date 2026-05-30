@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContextCore";
 import logo from "/logo3.svg";
 
 function Signin() {
