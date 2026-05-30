@@ -33,7 +33,8 @@ export default function registerTeacherEvents(io, socket) {
 
             // Fetch the exam to get all enrolled students
             const exam = await Exam.findById(examId)
-                .populate("students", "name rollNumber collegeId session batch")
+                .select("students session branch semester")
+                .populate("students", "name rollNumber collegeId batch")
                 .lean();
 
             if (!exam) {
@@ -43,7 +44,7 @@ export default function registerTeacherEvents(io, socket) {
 
             // Fetch all violations for this exam
             const violations = await Violation.find({ examId })
-                .populate("studentId", "name rollNumber collegeId session batch")
+                .populate("studentId", "name rollNumber collegeId batch")
                 .lean();
 
             // Fetch all submissions for this exam to detect submitted students
@@ -67,7 +68,6 @@ export default function registerTeacherEvents(io, socket) {
                         name: student.name,
                         rollNumber: student.rollNumber,
                         collegeId: student.collegeId,
-                        session: student.session,
                         batch: student.batch,
                     },
                     violations: violation?.violations || [],
@@ -96,7 +96,8 @@ export default function registerTeacherEvents(io, socket) {
         try {
             // Fetch the exam to get all enrolled students
             const exam = await Exam.findById(examId)
-                .populate("students", "name rollNumber collegeId session batch")
+                .select("students session branch semester")
+                .populate("students", "name rollNumber collegeId batch")
                 .lean();
 
             if (!exam) {
@@ -106,7 +107,7 @@ export default function registerTeacherEvents(io, socket) {
 
             // Fetch all violations for this exam
             const violations = await Violation.find({ examId })
-                .populate("studentId", "name rollNumber collegeId session batch")
+                .populate("studentId", "name rollNumber collegeId batch")
                 .lean();
 
             // Fetch all submissions for this exam to detect submitted students
@@ -130,7 +131,6 @@ export default function registerTeacherEvents(io, socket) {
                         name: student.name,
                         rollNumber: student.rollNumber,
                         collegeId: student.collegeId,
-                        session: student.session,
                         batch: student.batch,
                     },
                     violations: violation?.violations || [],

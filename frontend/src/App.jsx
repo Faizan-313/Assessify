@@ -20,12 +20,12 @@ const TeacherExamLayout = lazy(() =>
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicOnlyRoute from "./routes/PublicOnlyRoute";
 
-//pages - only critical pages loaded upfront
+//pages - only main pages loaded upfront
 import Home from "./pages/common/Home";
 import NavBar from "./components/NavBar";
 import PageNotFound from "./pages/common/PageNotFound";
 
-// Lazy load all pages to avoid loading unused code on 3G
+// Lazy load all pages to avoid loading unused code
 const ExamCodeAndInstruction = lazy(() => import("./pages/student/ExamCodeAndInstruction"));
 const ThankYou = lazy(() => import("./pages/common/ThankYou"));
 const Signup = lazy(() => import("./pages/auth/Signup"));

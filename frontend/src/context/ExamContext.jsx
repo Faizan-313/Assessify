@@ -28,11 +28,21 @@ export function ExamProvider({ children }) {
         }
     }
 
-    //Restore exam details if present
+    //Restore exam + student session if present (survives navigation before context re-renders)
     useEffect(() => {
         const storedExam = sessionStorage.getItem("examDetails");
         if (storedExam) {
             setExam(JSON.parse(storedExam));
+        }
+        const storedSession = sessionStorage.getItem("studentExamSession");
+        if (storedSession) {
+            try {
+                const { student, question } = JSON.parse(storedSession);
+                if (student) setStudentDetails(student);
+                if (question) setQuestionPaper(question);
+            } catch {
+                sessionStorage.removeItem("studentExamSession");
+            }
         }
     }, []);
 
@@ -69,13 +79,22 @@ export function ExamProvider({ children }) {
             setLoading(true);
             const res = await axios.post(`${url}/api/v1/exams/submit-student-details`, details, { withCredentials: true});
             if(res.status === 200){
-                setStudentDetails(res.data.student);
-                setQuestionPaper(res.data.question);
-                return { success: true };
+                const student = res.data.student;
+                const question = res.data.question;
+                setStudentDetails(student);
+                setQuestionPaper(question);
+                sessionStorage.setItem(
+                    "studentExamSession",
+                    JSON.stringify({ student, question })
+                );
+                return { success: true, student, question };
             }
         } catch (error) {
-            console.log("Error in submitting student details: ", error);
-            return { success: false, error: error?.response?.data?.message };
+            const message =
+                error?.response?.data?.message ||
+                "Could not register for this exam. Please check your details and try again.";
+            console.error("Error in submitting student details:", message, error);
+            return { success: false, error: message };
         }finally{
             setLoading(false);
         }

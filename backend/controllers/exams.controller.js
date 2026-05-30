@@ -5,6 +5,12 @@ import { Student } from "../models/student.model.js";
 import { User } from "../models/user.model.js"; 
 import { v4 as uuidv4 } from "uuid";
 import { uploadBufferToCloudinary } from "../cloudinary/cloudinary.js";
+import {
+    sanitizeExamMetadata,
+    assertExamMetadataPresent,
+    pickExamPublicFields,
+    pickStudentPublicFields,
+} from "../utils/examMetadata.js";
 
 const createExam = async (req, res) => {
     try {
@@ -28,6 +34,12 @@ const createExam = async (req, res) => {
         examDetailsParsed.startTime = new Date(examDetailsParsed.startTime);
         examDetailsParsed.endTime = new Date(examDetailsParsed.endTime);
 
+        const examMeta = sanitizeExamMetadata(examDetailsParsed);
+        const metaError = assertExamMetadataPresent(examMeta);
+        if (metaError) {
+            return res.status(400).json({ message: metaError });
+        }
+
         //Generate unique exam code
         const baseCode = examDetailsParsed.examCode;
         const uniqueCode = `${baseCode}-${uuidv4()
@@ -36,11 +48,18 @@ const createExam = async (req, res) => {
 
         // Create Exam 
         const newExam = new Exam({
-            ...examDetailsParsed,
-            duration: parseInt(examDetailsParsed.duration),
+            title: examDetailsParsed.title,
+            description: examDetailsParsed.description,
+            branch: examMeta.branch,
+            semester: examMeta.semester,
+            session: examMeta.session,
+            duration: parseInt(examDetailsParsed.duration, 10),
             totalMarks,
             examCode: uniqueCode,
+            startTime: examDetailsParsed.startTime,
+            endTime: examDetailsParsed.endTime,
             createdBy: req.user._id,
+            students: [],
         });
 
         //Create Question Paper
@@ -123,7 +142,10 @@ const validateCode = async (req, res) => {
             return res.status(410).json({ message: "This exam has ended and is no longer accessible." });
         }
         
-        return res.status(200).json({ message: "Code validated successfully", examDetails })
+        return res.status(200).json({
+            message: "Code validated successfully",
+            examDetails: pickExamPublicFields(examDetails),
+        });
 
     } catch (error) {
         console.log("Error in validating exam-code: ", error);
@@ -134,19 +156,33 @@ const validateCode = async (req, res) => {
 
 const storeStudentDetails = async (req, res) => {
     try {
-        const { fullName, rollNumber, collegeId, session, batch, examId } = req.body;
+        const { fullName, rollNumber, collegeId, batch, examId } = req.body;
 
         if (!examId) {
             return res.status(400).json({ message: "Check the exam code again" });
         }
 
-        if ([fullName, rollNumber, collegeId, session, batch].some(field => !field || field.trim() === "")) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
         const exam = await Exam.findById(examId);
         if (!exam) {
             return res.status(404).json({ message: "Exam does not exist" });
+        }
+
+        const examMeta = sanitizeExamMetadata(exam);
+        const batchValue = batch !== undefined && batch !== null && String(batch).trim() !== ""
+            ? Number.parseInt(String(batch).trim(), 10)
+            : NaN;
+
+        if (!fullName?.trim() || !rollNumber?.trim() || !collegeId?.trim()) {
+            return res.status(400).json({ message: "Name, roll number, and college ID are required" });
+        }
+        if (!examMeta.session) {
+            return res.status(400).json({
+                message:
+                    "This exam has no academic session configured. Ask your instructor to update the exam, or contact support.",
+            });
+        }
+        if (!Number.isFinite(batchValue)) {
+            return res.status(400).json({ message: "A valid batch year is required (e.g. 2022)" });
         }
 
         const formattedRoll = rollNumber.trim().toUpperCase();
@@ -159,15 +195,23 @@ const storeStudentDetails = async (req, res) => {
                 name: fullName.trim().toLowerCase(),
                 rollNumber: formattedRoll,
                 collegeId: formattedCollegeId,
-                session,
-                batch,
+                batch: batchValue,
                 examsAttempted: []
             });
         } else {
-            const existingSubmission = await ExamSubmission.findOne({ studentId: student._id, examId });
+            const existingSubmission = await ExamSubmission.findOne({
+                studentId: student._id,
+                examId,
+            });
             if (existingSubmission) {
-                return res.status(400).json({ message: "Student is already registered for this exam" });
+                return res.status(400).json({
+                    message: "You have already submitted this exam and cannot re-enter.",
+                });
             }
+            await Student.findByIdAndUpdate(student._id, {
+                batch: batchValue,
+            });
+            student.batch = batchValue;
         }
 
         const questionPaper = await QuestionPaper.findOne({ examId }).select("questions");
@@ -175,14 +219,18 @@ const storeStudentDetails = async (req, res) => {
             return res.status(404).json({ message: "Question paper not found" });
         }
 
-        //link students to exams
-        exam.students.push(student._id);
-        await exam.save();
+        const alreadyEnrolled = exam.students.some(
+            (id) => String(id) === String(student._id)
+        );
+        if (!alreadyEnrolled) {
+            exam.students.push(student._id);
+            await exam.save();
+        }
 
         return res.status(200).json({
             success: true,
             message: "Student details submitted successfully",
-            student,
+            student: pickStudentPublicFields(student),
             question: questionPaper
         });
 
@@ -274,16 +322,8 @@ const getExamData = async (req, res) => {
         // Fetch the related question paper
         const paper = await QuestionPaper.findOne({ examId: exam._id });
 
-        // Prepare formatted response
         const formattedExam = {
-            _id: exam._id,
-            title: exam.title,
-            examCode: exam.examCode,
-            description: exam.description,
-            duration: exam.duration,
-            totalMarks: exam.totalMarks,
-            startTime: exam.startTime,
-            endTime: exam.endTime,
+            ...pickExamPublicFields(exam),
             questions: paper?.questions || [],
             evaluationStatus: exam.evaluationStatus,
             createdAt: exam.createdAt,

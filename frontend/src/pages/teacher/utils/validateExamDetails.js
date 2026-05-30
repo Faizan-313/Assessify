@@ -18,6 +18,21 @@ const validateExamDetails = (examDetails, questions = []) => {
         isValid = false;
     }
 
+    if (!examDetails.branch.trim()) {
+        toast.error("Please enter a branch");
+        isValid = false;
+    }
+
+    if (!examDetails.semester) {
+        toast.error("Please enter a semester");
+        isValid = false;
+    }
+
+    if (!examDetails.session) {
+        toast.error("Please enter a session");
+        isValid = false;
+    }
+
     if (!examDetails.startTime || !examDetails.endTime) {
         toast.error("Please select start and end times");
         isValid = false;
