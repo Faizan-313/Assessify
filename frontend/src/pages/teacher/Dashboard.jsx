@@ -238,7 +238,7 @@ const accentMap = {
 
 function DashboardSkeleton() {
     return (
-        <div className="relative min-h-screen bg-gray-950 text-gray-100 overflow-hidden animate-pulse">
+        <div className="relative min-h-screen bg-gray-950 text-gray-400 overflow-hidden animate-pulse">
             <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-indigo-600/15 rounded-full blur-[130px] pointer-events-none" />
             <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-violet-600/15 rounded-full blur-[130px] pointer-events-none" />
 

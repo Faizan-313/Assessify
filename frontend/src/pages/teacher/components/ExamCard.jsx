@@ -43,7 +43,7 @@ function ExamCard({ exam, onViewDetails, onEvaluate, onCopyCode, copiedCode, onD
                     <h2 className="text-xl font-bold line-clamp-2 text-white">
                         {exam.title}
                     </h2>
-                    {exam.evaluationStatus && exam.evaluationStatus !== "not_started" && (
+                    {exam.evaluationStatus && exam.evaluationStatus !== "not_started" && exam.evaluationStatus !== "in_progress" && (
                         <ExamEvaluationStatusBadge status={exam.evaluationStatus} />
                     )}
                 </div>
@@ -132,11 +132,6 @@ function ExamCard({ exam, onViewDetails, onEvaluate, onCopyCode, copiedCode, onD
 
 function ExamEvaluationStatusBadge({ status }) {
     const config = {
-        in_progress: {
-            label: "AI auto-evaluation running",
-            icon: Loader,
-            className: "bg-amber-500/15 text-amber-100 border border-amber-400/35",
-        },
         auto_evaluated: {
             label: "Papers auto-evaluated — review or finalize in panel",
             icon: Sparkles,
@@ -166,7 +161,6 @@ function ExamEvaluationStatusBadge({ status }) {
         <span
             className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-snug ${config.className}`}
         >
-            <Icon size={12} className={status === "in_progress" ? "animate-spin shrink-0" : "shrink-0"} />
             {config.label}
         </span>
     );
