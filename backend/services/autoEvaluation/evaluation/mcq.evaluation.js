@@ -1,4 +1,3 @@
-// MCQ answers from the student app are stored as the selected option string.
 function scoreMcqQuestion(question, answerText) {
     const maxMarks = Number(question.marks) || 0;
     const rawIdx = question.evaluationConfig?.correctOption;
@@ -16,10 +15,6 @@ function scoreMcqQuestion(question, answerText) {
 
     const expected = String(options[correctIdx] ?? "").trim();
     const given = String(answerText ?? "").trim();
-
-    if (expected.length === 0) {
-        return { marksObtained: 0, maxMarks };
-    }
 
     const marksObtained = expected === given ? maxMarks : 0;
     return { marksObtained, maxMarks };

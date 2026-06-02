@@ -1,18 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import {
-    parseRetryDelayMsFromGeminiError,
-    generateContentWithRetries
-} from "../helpers/retries.js";
-import {
-    GEMINI_GRADER_MODEL,
-    GEMINI_MAX_RPM,
-    GEMINI_RPM_MIN_INTERVAL_MS,
-    GEMINI_REQUEST_DELAY_MS
-} from "../constants.js";
+import { parseRetryDelayMsFromGeminiError, generateContentWithRetries } from "../helpers/retries.js";
+import { GEMINI_GRADER_MODEL } from "../constants.js";
 import buildTextGradingMessages from "./utils/textGradingMessage.js";
 import buildCodeGradingMessages from "./utils/codeGradingMessage.js";
-import clampMarks from "../helpers/clampMarks.js"
-
+import clampMarks from "../helpers/clampMarks.js";
 
 let geminiAi = null;
 
@@ -29,7 +20,6 @@ function getGeminiAi() {
 async function evaluateWithAi({ question, answerText, kind }) {
     const maxMarks = Number(question?.marks) || 0;
 
-    // empty answers — no need to call model.
     if (!answerText || String(answerText).trim().length === 0) {
         return {
             status: "done",
@@ -40,14 +30,13 @@ async function evaluateWithAi({ question, answerText, kind }) {
 
     try {
         const genAI = getGeminiAi();
-
         let messages;
+
         if (kind === "text") {
             messages = buildTextGradingMessages(question, answerText);
         } else if (kind === "code") {
             messages = buildCodeGradingMessages(question, answerText);
         } else {
-            // Unsupported kind for AI grading — caller will treat this as manual review.
             return { status: "error", marksObtained: 0 };
         }
 
@@ -63,9 +52,7 @@ async function evaluateWithAi({ question, answerText, kind }) {
             },
         });
 
-        const response = await generateContentWithRetries(() =>
-            model.generateContent(userPrompt)
-        );
+        const response = await generateContentWithRetries(() => model.generateContent(userPrompt));
         const raw = response?.response?.text() ?? "";
         const qid = question?._id != null ? String(question._id) : "?";
 
@@ -81,7 +68,6 @@ async function evaluateWithAi({ question, answerText, kind }) {
             return { status: "error", marksObtained: 0 };
         }
 
-        // Handle different field names returned by the AI grader.
         const rawMarks = parsed?.marksObtained ?? parsed?.marks_awarded ?? parsed?.marks_obtained;
         const marksObtained = clampMarks(rawMarks, maxMarks);
 
@@ -89,16 +75,11 @@ async function evaluateWithAi({ question, answerText, kind }) {
             typeof parsed?.feedback === "string"
                 ? parsed.feedback
                 : typeof parsed?.comment === "string"
-                    ? parsed.comment
-                    : typeof parsed?.rationale === "string"
-                        ? parsed.rationale
-                        : "";
+                ? parsed.comment
+                : typeof parsed?.rationale === "string"
+                ? parsed.rationale
+                : "";
         const feedback = feedbackRaw.trim() || "(Model returned no feedback text.)";
-
-        const rawForLog = raw.length > 8000 ? `${raw.slice(0, 8000)}… [truncated ${raw.length} chars]` : raw;
-
-        // console.log(`model:  `, rawForLog);
-        // console.log("---marksObtained:   ", marksObtained);
 
         return { status: "done", marksObtained, feedback };
     } catch (error) {

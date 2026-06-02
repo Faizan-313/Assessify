@@ -1,5 +1,5 @@
 import { ExamSubmission } from "../../../models/examSubmission.model.js";
-import evaluateWithAi from "./ai.evaluation.js"
+import evaluateWithAi from "./ai.evaluation.js";
 import { Exam } from "../../../models/exam.model.js";
 import clampMarks from "../helpers/clampMarks.js";
 import scoreMcqQuestion from "./mcq.evaluation.js";
@@ -11,7 +11,6 @@ function mcqHasAnswerKey(question) {
     return raw !== undefined && raw !== null && !Number.isNaN(Number(raw));
 }
 
-
 async function runAutoEvaluationJob({ examId, questionPaper }) {
     try {
         const submissions = await ExamSubmission.find({ examId }).lean();
@@ -21,21 +20,16 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
             return;
         }
 
-        const questionById = new Map(
-            questionPaper?.questions?.map((q) => [String(q._id), q])
-        );
-
+        const questionById = new Map(questionPaper?.questions?.map((q) => [String(q._id), q]));
         const bulkOps = [];
 
         for (const sub of submissions) {
             let totalScore = 0;
             let needsManualReview = false;
-
             const updatedAnswers = [];
 
             for (const ans of sub.answers || []) {
                 const q = questionById.get(String(ans.questionId));
-
                 if (!q) {
                     needsManualReview = true;
                     updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
@@ -67,9 +61,7 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
                         await sleep(GEMINI_REQUEST_DELAY_MS);
                     }
 
-                    //if the auto evaluation fails for particular question, then we add it to the manual review
-                    //TODO:(later) add a feature to retry the auto evaluation for that particular question (queue) 
-                    if(status === "error"){
+                    if (status === "error") {
                         needsManualReview = true;
                         updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
                         continue;
@@ -85,13 +77,11 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
                     continue;
                 }
 
-                //for diagram type questions
                 needsManualReview = true;
                 updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
             }
 
             const evaluateStatus = needsManualReview ? "Pending" : "AutoEvaluated";
-
             bulkOps.push({
                 updateOne: {
                     filter: { _id: sub._id },

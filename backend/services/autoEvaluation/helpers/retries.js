@@ -9,9 +9,6 @@ function parseRetryDelayMsFromGeminiError(error) {
     return Math.min(60_000, Math.max(500, Math.ceil(sec * 1000)));
 }
 
-
-
-// Retries generateContent on 429/503 with backoff. 
 async function generateContentWithRetries(fn, { maxAttempts = 5 } = {}) {
     let lastErr;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -37,7 +34,4 @@ async function generateContentWithRetries(fn, { maxAttempts = 5 } = {}) {
     throw lastErr;
 }
 
-export { 
-    generateContentWithRetries, 
-    parseRetryDelayMsFromGeminiError 
-};
+export { generateContentWithRetries, parseRetryDelayMsFromGeminiError };

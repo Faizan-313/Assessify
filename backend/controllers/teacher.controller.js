@@ -4,6 +4,7 @@ import { QuestionPaper } from "../models/questions.model.js";
 import { Student } from "../models/student.model.js";
 import { Violation } from "../models/violation.model.js";
 import { pickExamPublicFields } from "../utils/examMetadata.js";
+import { streamStudentPaperPdf } from "../services/pdf/downloadStudentPaper.service.js";
 
 
 const dashboardData = async (req, res) => {
@@ -281,11 +282,26 @@ const getStudent = async (req, res) => {
     }
 };
 
+const downloadStudentPaper = async (req, res) => {
+    try {
+        await streamStudentPaperPdf({
+            examId: req.params.examId,
+            studentId: req.params.studentId,
+            userId: req.user._id,
+        }, res);
+    } catch (error) {
+        console.error("Error downloading student paper:", error);
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Could not download paper",
+        });
+    }
+};
 
 export {
     dashboardData,
     studentList,
     evaluatePaper,
     completeEvaluation,
-    getStudent
+    getStudent,
+    downloadStudentPaper,
 }
