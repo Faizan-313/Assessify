@@ -39,13 +39,13 @@ const login = async (req, res)=>{
         const user = await User.findOne({ email: email.toLowerCase() })
 
         if(!user){
-            return res.status(400).json({ message: "Invalid email" })
+            return res.status(400).json({ message: "User not found" })
         }
         
         const checkPassword = await user.isPasswordCorrect(password);
 
         if(!checkPassword){
-            return res.status(400).json({  message: "Invalid password" })
+            return res.status(400).json({  message: "Invalid email or password" })
         }
 
         const tokens = await generateAccessAndRefreshToken(user);
@@ -140,11 +140,11 @@ const refreshAccessToken = async (req, res) => {
         const user = await User.findById( decodedToken?._id )
         
         if(!user) {
-            return res.status(401).json({ message: "invalid refresh token" })
+            return res.status(401).json({ message: "invalid token" })
         }
     
         if( incomingRefreshToken !== user?.refreshToken ){
-            return res.status(401).json({ message: "refresh token is expired or used" })
+            return res.status(401).json({ message: "token is expired or used" })
         }
 
         // Atomically rotate the refresh token: this only succeeds if the incoming
@@ -169,7 +169,7 @@ const refreshAccessToken = async (req, res) => {
 
         if (!updated) {
             // Either the user doesn't exist or another concurrent refresh already rotated the token.
-            return res.status(401).json({ message: "Refresh token is expired or already used" });
+            return res.status(401).json({ message: "Token is expired or already used" });
         }
 
         return res.status(200)
