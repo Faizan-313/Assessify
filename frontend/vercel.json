@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/:path*", "destination": "https://codefusion-jdq6.onrender.com/api/:path*" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }

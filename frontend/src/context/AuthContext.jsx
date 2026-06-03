@@ -4,8 +4,6 @@ import toast from "react-hot-toast";
 import { apiCall } from "../api/api";
 import { AuthContext } from "./AuthContextCore";
 
-const url = import.meta.env.VITE_API_URL;
-
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -26,14 +24,10 @@ export function AuthProvider({ children }) {
     const login = async (email, password) => {
         try {
             const response = await axios.post(
-                `${url}/api/v1/auth/login`,
+                `/api/v1/auth/login`,
                 { email, password },
                 { withCredentials: true }
             );
-
-            //for debugging
-            console.log("Login response: ", response);
-            localStorage.setItem("user", JSON.stringify(response));
 
             if (response.status === 200) {
                 const loggedInUser = response.data.user;
@@ -53,7 +47,7 @@ export function AuthProvider({ children }) {
     const register = async (name, email, password) => {
         try {
             const response = await axios.post(
-                `${url}/api/v1/auth/register`,
+                `/api/v1/auth/register`,
                 { name, email, password },
                 { withCredentials: true }
             );
@@ -73,7 +67,7 @@ export function AuthProvider({ children }) {
 
     const logout = async () => {
         try {
-            const response = await apiCall(`${url}/api/v1/auth/logout`, "POST");
+            const response = await apiCall(`/api/v1/auth/logout`, "POST");
             if (response.status === 200) {
                 clearUserState();
                 toast.dismiss();

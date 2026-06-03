@@ -13,7 +13,7 @@ const refreshTokenOnce = () => {
     if (!refreshPromise) {
         refreshPromise = axios
             .post(
-                `${import.meta.env.VITE_API_URL}/api/v1/auth/refresh-token`,
+                `/api/v1/auth/refresh-token`,
                 {},
                 { withCredentials: true }
             )

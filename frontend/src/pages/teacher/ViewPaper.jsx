@@ -82,9 +82,9 @@ const getViolationColor = (type) => {
 const fetchStudent = async (studentId) => {
     try {
         const response = await apiCall(
-            `${import.meta.env.VITE_API_URL}/api/v1/teacher/exam/student?studentId=${studentId}`,
-            "GET"
-        );
+                `/api/v1/teacher/exam/student?studentId=${studentId}`,
+                "GET"
+            );
 
         if (response.status === 200) {
             return response.data.student;
@@ -219,7 +219,7 @@ function ViewPaper() {
 
 
             const response = await apiCall(
-                `${import.meta.env.VITE_API_URL}/api/v1/teacher/evaluate-paper`,
+                `/api/v1/teacher/evaluate-paper`,
                 "POST",
                 {
                     data: {
@@ -254,7 +254,7 @@ function ViewPaper() {
         try {
             setDownloadingPaper(true);
             const response = await apiCall(
-                `${import.meta.env.VITE_API_URL}/api/v1/teacher/exam/${examId}/download/${studentId}/pdf`,
+                `/api/v1/teacher/exam/${examId}/download/${studentId}/pdf`,
                 "GET",
                 {
                     responseType: "blob",

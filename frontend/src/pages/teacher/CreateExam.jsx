@@ -260,7 +260,7 @@ export default function CreateExam() {
 
         try {
             // we're sending multipart/form-data so the backend should accept files under keys like `image_0`, `image_1`, ...
-            const res = await apiCall(`${import.meta.env.VITE_API_URL}/api/v1/exams/create`, "POST", { data: formData });
+            const res = await apiCall(`/api/v1/exams/create`, "POST", { data: formData });
             if (res.status === 200) {
                 toast.success("Exam published successfully!");
 

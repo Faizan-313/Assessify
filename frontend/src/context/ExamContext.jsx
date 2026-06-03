@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { ExamContext } from "./ExamContextCore";
 
-const url = import.meta.env.VITE_API_URL;
-
 export function ExamProvider({ children }) {
     const [exam, setExam] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -14,10 +12,10 @@ export function ExamProvider({ children }) {
     //get particular exam details
     const fetchParticularExamDetails = async (examId) => {
         try {
-                const response = await axios.get(
-                    `${import.meta.env.VITE_API_URL}/api/v1/exams/${examId}`,
-                    { withCredentials: true }
-                ); 
+                        const response = await axios.get(
+                            `/api/v1/exams/${examId}`,
+                            { withCredentials: true }
+                        ); 
                 if (response.status === 200) {
                     setParticularExamDetails(response.data);
                     return { success: true, data: response.data};
@@ -57,7 +55,7 @@ export function ExamProvider({ children }) {
         try {
             setLoading(true);
             const res = await axios.post(
-                `${url}/api/v1/exams/validate-code`,
+                `/api/v1/exams/validate-code`,
                 { examCode },
                 { withCredentials: true }
             );
@@ -77,7 +75,7 @@ export function ExamProvider({ children }) {
     const submitStudentDetails = async (details) => {
         try {
             setLoading(true);
-            const res = await axios.post(`${url}/api/v1/exams/submit-student-details`, details, { withCredentials: true});
+            const res = await axios.post(`/api/v1/exams/submit-student-details`, details, { withCredentials: true});
             if(res.status === 200){
                 const student = res.data.student;
                 const question = res.data.question;

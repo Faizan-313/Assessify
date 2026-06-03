@@ -42,7 +42,7 @@ function AppearedStudentList() {
         if (!examId) return null;
         try {
             const res = await apiCall(
-                `${import.meta.env.VITE_API_URL}/api/v1/${examId}/auto-evaluation/status`,
+                `/api/v1/${examId}/auto-evaluation/status`,
                 "GET"
             );
             const next = res?.data?.evaluationStatus ?? null;
@@ -153,7 +153,7 @@ function AppearedStudentList() {
         try {
             setStartingEvaluation(true);
             const res = await apiCall(
-                `${import.meta.env.VITE_API_URL}/api/v1/${examId}/auto-evaluation/start`,
+                `/api/v1/${examId}/auto-evaluation/start`,
                 "POST"
             );
             if (res.status === 202 || res.status === 200) {
@@ -181,7 +181,7 @@ function AppearedStudentList() {
         try {
             setCompleting(true);
             const res = await apiCall(
-                `${import.meta.env.VITE_API_URL}/api/v1/teacher/exam/complete`,
+                `/api/v1/teacher/exam/complete`,
                 "POST",
                 { data: { examId } }
             );

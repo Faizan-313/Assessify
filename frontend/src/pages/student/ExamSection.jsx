@@ -151,7 +151,7 @@ function ExamSection() {
             }));
 
             const response = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/v1/exams/submit`,
+                `/api/v1/exams/submit`,
                 {
                     answers: finalAnswers,
                     examId: exam._id,

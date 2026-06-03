@@ -3,8 +3,6 @@ import toast from "react-hot-toast";
 import { apiCall } from "../api/api";
 import { TeacherContext } from "./TeacherContextCore";
 
-const url = import.meta.env.VITE_API_URL;
-
 export const TeacherProvider = ({ children }) => {
     const [students, setStudents] = useState([]);
     const [studentsLoading, setStudentsLoading] = useState(false);
@@ -23,7 +21,7 @@ export const TeacherProvider = ({ children }) => {
         try {
             setStudentsLoading(true);
             setStudentsError(null);
-            const response = await apiCall(`${url}/api/v1/teacher/exam/students`, "GET", {
+            const response = await apiCall(`/api/v1/teacher/exam/students`, "GET", {
                 params: { examId, page, limit },
             });
 
@@ -47,7 +45,7 @@ export const TeacherProvider = ({ children }) => {
         try {
             setExamsLoading(true);
             setExamsError(null);
-            const response = await apiCall(`${url}/api/v1/teacher/dashboard`, "GET");
+            const response = await apiCall(`/api/v1/teacher/dashboard`, "GET");
 
             if (response.data?.success) {
                 setExams(response.data.exams || []);
@@ -69,7 +67,7 @@ export const TeacherProvider = ({ children }) => {
 
     const deleteExam = useCallback(async (id) => {
         try {
-            const res = await apiCall(`${import.meta.env.VITE_API_URL}/api/v1/exams/${id}`, "DELETE");
+            const res = await apiCall(`/api/v1/exams/${id}`, "DELETE");
             if (res?.status === 200) {
                 removeExam(id);
                 toast.success("Exam deleted successfully.");

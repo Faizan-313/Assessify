@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom"
 import toast from "react-hot-toast"
 import axios from "axios"
 
-const url = import.meta.env.VITE_API_URL;
+// using same-origin `/api` proxy routes
 
 function ForgotPassword() {
     const [formData, setFormData] = useState({
@@ -46,7 +46,7 @@ function ForgotPassword() {
 
         try {
             const response = await axios.post(
-                `${url}/api/v1/forgot-password/verify-email`,
+                `/api/v1/forgot-password/verify-email`,
                 { email },
                 { withCredentials: true }
             );
@@ -77,7 +77,7 @@ function ForgotPassword() {
         setIsLoading(true)
         try {
             const response = await axios.post(
-                `${url}/api/v1/forgot-password/verify-reset-code`,
+                `/api/v1/forgot-password/verify-reset-code`,
                 { code },
                 { withCredentials: true }
             );
@@ -122,7 +122,7 @@ function ForgotPassword() {
 
         try {
             const response = await axios.post(
-                `${url}/api/v1/forgot-password/reset-password`,
+                `/api/v1/forgot-password/reset-password`,
                 { password },
                 { withCredentials: true }
             );
