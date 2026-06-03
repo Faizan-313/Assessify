@@ -30,7 +30,10 @@ export function AuthProvider({ children }) {
                 { email, password },
                 { withCredentials: true }
             );
+
+            //for debugging
             console.log("Login response: ", response);
+            localStorage.setItem("user", JSON.stringify(response));
 
             if (response.status === 200) {
                 const loggedInUser = response.data.user;
