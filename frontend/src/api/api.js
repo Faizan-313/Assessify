@@ -25,7 +25,6 @@ const refreshTokenOnce = () => {
 };
 
 const endSession = () => {
-    console.trace("END SESSION");
     if (sessionEnded) return;
     sessionEnded = true;
 
@@ -43,7 +42,6 @@ const endSession = () => {
 
 export const apiCall = async (url, method, options = {}) => {
     try {
-        console.log(`api hit for ${url}`);
         const res = await axios({
             url,
             method,
@@ -52,7 +50,6 @@ export const apiCall = async (url, method, options = {}) => {
         });
         return res;
     } catch (error) {
-        console.error(`API call error for ${url}:`, error);
         if (error.response?.status === 401) {
             if (sessionEnded) {
                 throw error;
@@ -71,7 +68,6 @@ export const apiCall = async (url, method, options = {}) => {
                     endSession();
                 }
             } catch (refreshErr) {
-                console.log("Refresh token failed:-> ", refreshErr);
                 void refreshErr;
                 endSession();
             }

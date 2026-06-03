@@ -30,6 +30,7 @@ export function AuthProvider({ children }) {
                 { email, password },
                 { withCredentials: true }
             );
+            console.log("Login response: ", response);
 
             if (response.status === 200) {
                 const loggedInUser = response.data.user;
