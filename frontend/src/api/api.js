@@ -25,6 +25,7 @@ const refreshTokenOnce = () => {
 };
 
 const endSession = () => {
+    console.trace("END SESSION");
     if (sessionEnded) return;
     sessionEnded = true;
 

@@ -1,90 +1,125 @@
-function addHorizontalLine(doc, y) {
-    doc.strokeColor('#e0e0e0')
-       .lineWidth(1)
-       .moveTo(60, y)
-       .lineTo(535, y)
-       .stroke();
+const MARGIN       = 60;
+const PAGE_WIDTH   = 595.28;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+
+const C = {
+    black:      "#1a1a1a",
+    darkGray:   "#333333",
+    midGray:    "#555555",
+    lightGray:  "#888888",
+    rule:       "#cccccc",
+    ruleLight:  "#e8e8e8",
+    codeBg:     "#f7f7f7",
+    codeBorder: "#d0d0d0",
+    codeText:   "#1a1a1a",
+};
+
+function addHorizontalLine(doc, y, { color = C.rule, weight = 0.5 } = {}) {
+    doc.save()
+        .strokeColor(color)
+        .lineWidth(weight)
+        .moveTo(MARGIN, y)
+        .lineTo(PAGE_WIDTH - MARGIN, y)
+        .stroke()
+        .restore();
 }
+
 
 function addSectionBox(doc, title) {
-    doc.rect(60, doc.y, 475, 25)
-       .fill('#2c3e50');
-    doc.fill('#ffffff')
-       .fontSize(12)
-       .font('Helvetica-Bold')
-       .text(title, 70, doc.y - 19);
-    doc.fill('#000000')
-       .font('Helvetica');
-    doc.moveDown(2);
+    doc.font("Helvetica-Bold")
+        .fontSize(8)
+        .fill(C.lightGray)
+        .text(title.toUpperCase(), MARGIN, doc.y, {
+            characterSpacing: 1.2,
+            width: CONTENT_WIDTH,
+        });
+
+    doc.moveDown(0.35);
+
+    addHorizontalLine(doc, doc.y, { color: C.rule, weight: 0.75 });
+
+    doc.moveDown(0.8);
+    doc.font("Helvetica")
+        .fontSize(10)
+        .fill(C.black);
 }
 
+// Base64 Image Detection 
 function isBase64Image(str) {
-    if (!str || typeof str !== 'string') return false;
-    return str.startsWith('data:image/') || /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/.test(str);
+    if (!str || typeof str !== "string") return false;
+    if (str.startsWith("data:image/")) return true;
+    return /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/.test(str);
 }
 
+// Image Renderer
 function renderImage(doc, imageData, options = {}) {
+    if (!imageData || typeof imageData !== "string") return false;
+
     try {
         let imgBuffer;
-        if (typeof imageData !== 'string') {
-            return false;
-        }
 
-        if (imageData.startsWith('data:image/')) {
-            const matches = imageData.match(/^data:image\/\w+;base64,(.+)$/);
-            if (matches) {
-                imgBuffer = Buffer.from(matches[1], 'base64');
-            }
-        } else if (imageData.startsWith('http')) {
-            // External image URLs are not rendered in this service.
+        if (imageData.startsWith("data:image/")) {
+            const match = imageData.match(/^data:image\/\w+;base64,(.+)$/);
+            if (match) imgBuffer = Buffer.from(match[1], "base64");
+        } else if (imageData.startsWith("http")) {
+            // External URLs are not supported in this rendering context.
             return false;
         } else {
-            imgBuffer = Buffer.from(imageData, 'base64');
+            imgBuffer = Buffer.from(imageData, "base64");
         }
 
         if (imgBuffer) {
-            const defaultOptions = { fit: [400, 300], align: 'center' };
-            doc.image(imgBuffer, { ...defaultOptions, ...options });
+            const defaults = { fit: [CONTENT_WIDTH, 300], align: "center" };
+            doc.image(imgBuffer, { ...defaults, ...options });
             return true;
         }
-    } catch (err) {
+    } catch {
         return false;
     }
+
     return false;
 }
 
+//Code Block Renderer 
 function formatCodeBlock(doc, code) {
-    const codeWidth = 400;
-    const codeX = 80;
-    const codeLines = String(code).split('\n');
-    const lineHeight = 14;
-    const padding = 15;
-    const codeHeight = (codeLines.length * lineHeight) + (padding * 2);
+    const lines       = String(code).split("\n");
+    const lineHeight  = 13;
+    const paddingV    = 12;
+    const paddingH    = 14;
+    const blockX      = MARGIN + 10;
+    const blockWidth  = CONTENT_WIDTH - 20;
+    const blockHeight = lines.length * lineHeight + paddingV * 2;
 
-    doc.rect(codeX - 5, doc.y - 5, codeWidth + 10, codeHeight)
-       .fill('#f8f9fa')
-       .stroke('#dee2e6');
+    // Background + border
+    doc.save()
+        .rect(blockX, doc.y, blockWidth, blockHeight)
+        .fillAndStroke(C.codeBg, C.codeBorder)
+        .restore();
 
-    doc.fill('#2c3e50')
-       .font('Courier')
-       .fontSize(9);
+    // Code text
+    doc.font("Courier")
+        .fontSize(8.5)
+        .fill(C.codeText);
 
-    codeLines.forEach((line, i) => {
-        doc.text(
-            line || ' ',
-            codeX,
-            doc.y + (i === 0 ? padding : 0),
-            {
-                width: codeWidth - 10,
-                lineBreak: false,
-            }
-        );
+    const textX    = blockX + paddingH;
+    const textMaxW = blockWidth - paddingH * 2;
+    const startY   = doc.y + paddingV;
+
+    lines.forEach((line, i) => {
+        doc.text(line || " ", textX, startY + i * lineHeight, {
+            width:     textMaxW,
+            lineBreak: false,
+        });
     });
 
-    doc.moveDown(codeLines.length * 0.5 + 1);
-    doc.font('Helvetica')
-       .fontSize(11)
-       .fill('#000000');
+    // Advance cursor past the block
+    doc.y = startY + lines.length * lineHeight + paddingV;
+    doc.moveDown(0.6);
+
+    // Restore body styles
+    doc.font("Helvetica")
+        .fontSize(10.5)
+        .fill(C.black);
 }
 
 export {

@@ -106,6 +106,7 @@ function ViewPaper() {
     const [marks, setMarks] = useState("");
     const [comments, setComments] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [downloadingPaper, setDownloadingPaper] = useState(false);
     const [localExamAttempt, setLocalExamAttempt] = useState(null);
     const [showViolations, setShowViolations] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -246,6 +247,44 @@ function ViewPaper() {
             setSubmitting(false);
         }
     }, [handleValidation, localExamAttempt, examId, studentId, comments, navigate]);
+
+    const handleDownloadPaper = useCallback(async () => {
+        if (!localExamAttempt) return;
+
+        try {
+            setDownloadingPaper(true);
+            const response = await apiCall(
+                `${import.meta.env.VITE_API_URL}/api/v1/teacher/exam/${examId}/download/${studentId}/pdf`,
+                "GET",
+                {
+                    responseType: "blob",
+                }
+            );
+
+            const blob = new Blob([response.data], {
+                type: "application/pdf",
+            });
+
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${student?.rollNumber}-answer-sheet.pdf`;
+            link.click();
+
+            window.URL.revokeObjectURL(url);
+
+            toast.success("Download ready");
+        } catch (error) {
+            console.error("Error downloading paper:", error);
+            const message = error?.response?.data?.message || "Failed to download paper";
+            toast.error(message);
+        } finally {
+            setDownloadingPaper(false);
+        }
+    }, [exam, examId, studentId, student, localExamAttempt]);
+
+    const canDownloadPaper = localExamAttempt?.evaluateStatus && ["AutoEvaluated", "Evaluated"].includes(localExamAttempt.evaluateStatus);
 
     // Render Functions
     const renderAiGraderNote = (studentAnswer) => {
@@ -395,23 +434,45 @@ function ViewPaper() {
         <div className="pt-20 min-h-screen bg-gradient-to-b from-[#f0f8f7] to-[#e0f2f0] dark:from-[#092635] dark:to-[#1b4242] py-8 px-4 sm:px-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center gap-4 mb-8">
-                    <button
-                        onClick={() => navigate(`/teacher/evaluation/${examId}`)}
-                        className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition"
-                        title="Go back"
-                        aria-label="Go back"
-                    >
-                        <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                    </button>
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                            Evaluate Paper
-                        </h1>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {exam.title}
-                        </p>
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => navigate(`/teacher/evaluation/${examId}`)}
+                            className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-xl transition-all duration-200"
+                            title="Go back"
+                            aria-label="Go back"
+                        >
+                            <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+                        </button>
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                Evaluate Paper
+                            </h1>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {exam.title}
+                            </p>
+                        </div>
                     </div>
+
+                    {canDownloadPaper && (
+                        <button
+                            onClick={handleDownloadPaper}
+                            disabled={downloadingPaper}
+                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white px-5 py-3 text-sm font-semibold shadow-md shadow-slate-500/70 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-slate-500/50 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                        >
+                            {downloadingPaper ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Downloading...
+                                </>
+                            ) : (
+                                <>
+                                    <FileText className="w-4 h-4" />
+                                    Download Paper
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
@@ -541,9 +602,7 @@ function ViewPaper() {
                         )}
                     </div>
 
-                    {/* Sidebar */}
                     <div className="space-y-6">
-                        {/* Student Information Card */}
                         <div className="bg-[#f0f7f6] dark:bg-[#1b4242]/20 border border-[#9ec8b9] dark:border-[#5c8374] rounded-2xl p-5 shadow-md">
                             <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4">
                                 Student Information
