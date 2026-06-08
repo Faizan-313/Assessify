@@ -315,7 +315,8 @@ function ExamSection() {
             }
         });
 
-        socket.on("connect_error", () => {
+        socket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error);
             toast.error("Connection error. Please check your internet.");
         });
 

@@ -13,12 +13,15 @@ export default function useSocket() {
         socketRef.current = socket;
 
         socket.on("connect", () => {
-            console.log("hello")
             console.log("Connected to socket:", socket.id);
         });
 
         socket.on("disconnect", () => {
             console.log("Disconnected from socket");
+        });
+
+        socket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error);
         });
 
         return () => socket.disconnect();

@@ -7,6 +7,7 @@ export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
     server: {
+      
       // Dev proxy: forward /api requests to local backend
       proxy: {
         '/api': {

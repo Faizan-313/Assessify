@@ -63,8 +63,9 @@ export default function MonitorExam() {
             toast.error("Connection lost");
         });
 
-        s.on("connect_error", () => {
+        s.on("connect_error", (error) => {
             setIsConnected(false);
+            console.error("Socket connection error:", error);
         });
 
         // Listen for violations history 
