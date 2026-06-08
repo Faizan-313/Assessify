@@ -12,6 +12,15 @@ function NavBar() {
     const profileRef = useRef(null);
     const location = useLocation();
 
+    const getUserInitials = (name, email) => {
+        const source = (name || email || "").trim();
+        const parts = source.split(" ").filter(Boolean);
+        if (parts.length >= 2) {
+            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+        }
+        return source.slice(0, 2).toUpperCase();
+    };
+
     useEffect(() => {
         const handleScroll = () => {
             setScrolled(window.scrollY > 20);
@@ -69,14 +78,13 @@ function NavBar() {
                             <img
                                 src="/logo3.svg"
                                 alt="Assessify"
-                                className="w-10 h-10 transform group-hover:rotate-12 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(236,72,153,0.45)]"
+                                className="w-10 h-10 transform group-hover:rotate-12 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(56,189,248,0.22)]"
                             />
-                            <div className="absolute inset-0 bg-pink-400 blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
                         </div>
                         <span className="text-2xl font-bold">
                             <span className="text-white">Assess</span>
-                            <span className="bg-gradient-to-r from-pink-400 to-violet-400 bg-clip-text text-transparent">ify</span>
-                            <span className="text-fuchsia-400">.</span>
+                            <span className="bg-gradient-to-r from-sky-400 to-emerald-300 bg-clip-text text-transparent">ify</span>
+                            <span className="text-amber-300">.</span>
                         </span>
                     </Link>
 
@@ -92,7 +100,7 @@ function NavBar() {
                                 >
                                     {link.name}
                                     <span
-                                        className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-indigo-400 to-violet-500 transition-all duration-300 ${isActive ? 'w-full' : 'w-0 group-hover:w-full'}`}
+                                        className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-300 ${isActive ? 'w-full' : 'w-0 group-hover:w-full'}`}
                                     ></span>
                                 </Link>
                             );
@@ -105,10 +113,12 @@ function NavBar() {
                             <div className="relative" ref={profileRef}>
                                 <button
                                     onClick={() => setProfileOpen(!profileOpen)}
-                                    className="flex items-center space-x-2 px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300 font-medium"
+                                    className="flex items-center space-x-3 px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300 font-medium"
                                 >
-                                    <FaUser className="text-cyan-400" />
-                                    <span>{user.name || user.email}</span>
+                                    <div className="w-9 h-9 rounded-full bg-slate-700 border border-slate-600 text-slate-100 flex items-center justify-center text-sm font-semibold">
+                                        {getUserInitials(user.name, user.email)}
+                                    </div>
+                                    <span className="truncate max-w-[10rem] text-left">{user.name || user.email}</span>
                                     <FaChevronDown className={`text-sm transition-transform duration-300 ${profileOpen ? 'rotate-180' : ''}`} />
                                 </button>
 
@@ -117,8 +127,8 @@ function NavBar() {
                                     }`}>
                                     <div className="p-3 border-b border-gray-700/50">
                                         <div className="flex items-center space-x-2">
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-700 to-cyan-800 flex items-center justify-center">
-                                                <FaUser className="text-white" />
+                                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-semibold text-slate-100">
+                                                {getUserInitials(user.name, user.email)}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-white font-semibold truncate">{user.name || 'User'}</p>
@@ -153,12 +163,12 @@ function NavBar() {
                                 >
                                     Login
                                     <span
-                                        className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-indigo-400 to-violet-500 transition-all duration-300 ${location.pathname === '/signin' ? 'w-full' : 'w-0 group-hover:w-full'}`}
+                                        className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-300 ${location.pathname === '/signin' ? 'w-full' : 'w-0 group-hover:w-full'}`}
                                     ></span>
                                 </Link>
                                 <Link
                                     to="/signup"
-                                    className={`px-6 py-2 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-semibold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-violet-500/50 ${location.pathname === '/signup' ? 'ring-2 ring-violet-300/70 ring-offset-2 ring-offset-gray-900' : ''}`}
+                                    className={`px-6 py-2 bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-white font-semibold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-sky-500/25 ${location.pathname === '/signup' ? 'ring-2 ring-emerald-300/70 ring-offset-2 ring-offset-gray-900' : ''}`}
                                 >
                                     Register
                                 </Link>
@@ -185,9 +195,9 @@ function NavBar() {
                     }`}>
                     <div className="bg-gray-800/90 backdrop-blur-md rounded-2xl p-4 space-y-2 border border-gray-700/50">
                         {user && (
-                            <div className="flex items-center space-x-3 px-4 py-3 mb-2 bg-gradient-to-r from-cyan-500/10 to-blue-600/10 rounded-lg border border-cyan-500/20">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                                    <FaUser className="text-white" />
+                            <div className="flex items-center space-x-3 px-4 py-3 mb-2 bg-slate-900/90 rounded-lg border border-slate-700/50">
+                                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-slate-100">
+                                    {getUserInitials(user.name, user.email)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-white font-semibold truncate">{user.name || 'User'}</p>
@@ -204,7 +214,7 @@ function NavBar() {
                                     to={link.href}
                                     onClick={() => setIsOpen(false)}
                                     className={`block px-4 py-3 rounded-lg transition-all duration-200 font-medium border ${isActive
-                                        ? 'text-white bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border-indigo-400/40'
+                                        ? 'text-white bg-gradient-to-r from-sky-500/20 to-emerald-500/20 border-sky-400/40'
                                         : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
                                         }`}
                                 >
@@ -243,7 +253,7 @@ function NavBar() {
                                         to="/signin"
                                         onClick={() => setIsOpen(false)}
                                         className={`block px-4 py-3 rounded-lg transition-all duration-200 font-medium border ${location.pathname === '/signin'
-                                            ? 'text-white bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border-indigo-400/40'
+                                            ? 'text-white bg-gradient-to-r from-sky-500/20 to-emerald-500/20 border-sky-400/40'
                                             : 'text-white/80 hover:text-white hover:bg-white/10 border-transparent'
                                             }`}
                                     >
@@ -252,7 +262,7 @@ function NavBar() {
                                     <Link
                                         to="/signup"
                                         onClick={() => setIsOpen(false)}
-                                        className={`block px-4 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-semibold rounded-lg transition-all duration-300 text-center ${location.pathname === '/signup' ? 'ring-2 ring-violet-300/70 ring-offset-2 ring-offset-gray-800' : ''}`}
+                                        className={`block px-4 py-3 bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-white font-semibold rounded-lg transition-all duration-300 text-center ${location.pathname === '/signup' ? 'ring-2 ring-emerald-300/70 ring-offset-2 ring-offset-gray-800' : ''}`}
                                     >
                                         Register
                                     </Link>

@@ -46,15 +46,15 @@ function Docs() {
         { id: "overview", label: "Overview", icon: FaBook },
         { id: "students", label: "For students", icon: FaUserGraduate },
         { id: "instructors", label: "For instructors", icon: FaChalkboardTeacher },
-        { id: "proctoring", label: "AI proctoring", icon: FaShieldAlt },
+        { id: "proctoring", label: "Secure monitoring", icon: FaShieldAlt },
         { id: "requirements", label: "Requirements", icon: FaLaptop },
         { id: "support", label: "Help & support", icon: FaQuestionCircle },
     ];
 
     return (
         <div className="min-h-screen bg-gray-950 text-gray-100">
-            <div className="absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-indigo-950/40 via-gray-950 to-gray-950 pointer-events-none" />
-            <div className="absolute top-24 right-0 w-[28rem] h-[28rem] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-slate-950/60 via-gray-950 to-gray-950 pointer-events-none" />
+            <div className="absolute top-24 right-0 w-[28rem] h-[28rem] bg-slate-500/10 rounded-full blur-[100px] pointer-events-none" />
 
             <div className="relative max-w-7xl mx-auto px-6 pt-28 pb-20 lg:flex lg:gap-12">
                 <aside className="hidden lg:block w-64 shrink-0">
@@ -68,7 +68,7 @@ function Docs() {
                                 href={`#${id}`}
                                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                                     activeId === id
-                                        ? "bg-indigo-500/15 text-indigo-200 border border-indigo-500/30"
+                                        ? "bg-sky-500/15 text-sky-200 border border-sky-500/30"
                                         : "text-gray-400 hover:text-white hover:bg-white/5 border border-transparent"
                                 }`}
                             >
@@ -81,14 +81,14 @@ function Docs() {
                         <div className="pt-6 mt-6 border-t border-white/10 px-3 space-y-2">
                             <Link
                                 to="/exam"
-                                className="flex items-center justify-between text-sm text-indigo-300 hover:text-indigo-200 transition-colors group"
+                                className="flex items-center justify-between text-sm text-sky-300 hover:text-sky-200 transition-colors group"
                             >
                                 Start exam portal
                                 <FaArrowRight className="text-xs group-hover:translate-x-0.5 transition-transform" />
                             </Link>
                             <Link
                                 to="/signin"
-                                className="flex items-center justify-between text-sm text-violet-300 hover:text-violet-200 transition-colors group"
+                                className="flex items-center justify-between text-sm text-sky-300 hover:text-sky-200 transition-colors group"
                             >
                                 Instructor login
                                 <FaArrowRight className="text-xs group-hover:translate-x-0.5 transition-transform" />
@@ -114,26 +114,26 @@ function Docs() {
                         ))}
                     </nav>
 
-                    <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full border border-white/10 bg-white/5 text-xs font-semibold uppercase tracking-wider text-indigo-300">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 rounded-full border border-white/10 bg-white/5 text-xs font-semibold uppercase tracking-wider text-sky-300">
                         <FaBook className="text-sm" />
                         Documentation
                     </div>
 
                     <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
                         Assessify{" "}
-                        <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-sky-300 via-emerald-300 to-amber-300 bg-clip-text text-transparent">
                             product guide
                         </span>
                     </h1>
                     <p className="text-lg text-gray-400 leading-relaxed mb-12 max-w-2xl">
-                        Everything students and instructors need to run secure, AI-proctored
+                        Everything students and instructors need to run secure, proctored
                         exams—with multi-format questions built for computer science programs.
                     </p>
 
                     <div className="space-y-20">
                         <section id="overview" className="scroll-mt-28">
                             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/20">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-emerald-500 shadow-lg shadow-sky-500/20">
                                     <FaBook className="text-white text-lg" />
                                 </span>
                                 Overview
@@ -143,11 +143,11 @@ function Docs() {
                                     <strong className="text-gray-200">Assessify</strong> is an online
                                     examination platform that combines a unified workspace for
                                     MCQs, code, diagrams, and descriptive answers with{" "}
-                                    <strong className="text-gray-200">real-time AI proctoring</strong>{" "}
+                                    <strong className="text-gray-200">real-time monitoring</strong>{" "}
                                     and a live teacher dashboard. It is designed for academic
                                     integrity, clarity, and operational scale.
                                 </p>
-                                <ul className="list-disc pl-5 space-y-2 marker:text-indigo-400">
+                                <ul className="list-disc pl-5 space-y-2 marker:text-sky-400">
                                     <li>
                                         Students join via the public exam portal using an{" "}
                                         <strong className="text-gray-300">exam code</strong> supplied
@@ -167,7 +167,7 @@ function Docs() {
 
                         <section id="students" className="scroll-mt-28">
                             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-sky-500 shadow-lg shadow-emerald-500/20">
                                     <FaUserGraduate className="text-white text-lg" />
                                 </span>
                                 For students
@@ -199,7 +199,7 @@ function Docs() {
                                         Open the{" "}
                                         <Link
                                             to="/exam"
-                                            className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+                                            className="text-sky-300 hover:text-sky-200 underline underline-offset-2"
                                         >
                                             Exam Portal
                                         </Link>
@@ -227,7 +227,7 @@ function Docs() {
 
                         <section id="instructors" className="scroll-mt-28">
                             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 shadow-lg shadow-violet-500/20">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-emerald-500 shadow-lg shadow-sky-500/20">
                                     <FaChalkboardTeacher className="text-white text-lg" />
                                 </span>
                                 For instructors
@@ -237,14 +237,14 @@ function Docs() {
                                     Instructor features require an authenticated account. After{" "}
                                     <Link
                                         to="/signup"
-                                        className="text-violet-400 hover:text-violet-300 underline underline-offset-2"
+                                        className="text-sky-300 hover:text-sky-200 underline underline-offset-2"
                                     >
                                         registration
                                     </Link>{" "}
                                     and{" "}
                                     <Link
                                         to="/signin"
-                                        className="text-violet-400 hover:text-violet-300 underline underline-offset-2"
+                                        className="text-sky-300 hover:text-sky-200 underline underline-offset-2"
                                     >
                                         login
                                     </Link>
@@ -254,7 +254,7 @@ function Docs() {
                                 <h3 className="text-lg font-semibold text-white mt-6 mb-2">
                                     Typical workflow
                                 </h3>
-                                <ul className="list-disc pl-5 space-y-2 marker:text-violet-400">
+                                <ul className="list-disc pl-5 space-y-2 marker:text-sky-400">
                                     <li>
                                         <strong className="text-gray-300">Create an exam</strong>—set
                                         duration, formats, and questions (including coding tasks where
@@ -266,8 +266,8 @@ function Docs() {
                                     </li>
                                     <li>
                                         <strong className="text-gray-300">Monitor live</strong>{" "}
-                                        sessions when enabled, and review AI-assisted alerts from
-                                        the monitoring view.
+                                        sessions when enabled, and review monitoring alerts from
+                                        the dashboard.
                                     </li>
                                     <li>
                                         <strong className="text-gray-300">Evaluate</strong>{" "}
@@ -280,10 +280,10 @@ function Docs() {
 
                         <section id="proctoring" className="scroll-mt-28">
                             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
-                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-600 shadow-lg shadow-indigo-500/25">
+                                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-700 to-sky-500 shadow-lg shadow-sky-500/20">
                                     <FaShieldAlt className="text-white text-lg" />
                                 </span>
-                                AI proctoring &amp; conduct
+                                Monitoring &amp; conduct
                             </h2>
                             <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5 mb-6">
                                 <p className="text-sm text-amber-100/90 leading-relaxed">
@@ -373,7 +373,7 @@ function Docs() {
                                     For account recovery, use the{" "}
                                     <Link
                                         to="/forgot-password"
-                                        className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+                                        className="text-sky-300 hover:text-sky-200 underline underline-offset-2"
                                     >
                                         forgot password
                                     </Link>{" "}
@@ -383,7 +383,7 @@ function Docs() {
                                     For other questions, contact us at{" "}
                                     <a
                                         href="mailto:assessify.iust@gmail.com"
-                                        className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+                                        className="text-sky-300 hover:text-sky-200 underline underline-offset-2"
                                     >
                                         assessify.iust@gmail.com
                                     </a>
@@ -396,7 +396,7 @@ function Docs() {
                                     <div className="flex flex-wrap gap-3">
                                         <Link
                                             to="/exam"
-                                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-semibold shadow-lg shadow-violet-500/20 hover:shadow-violet-500/35 transition-shadow"
+                                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-slate-700 to-sky-500 text-white text-sm font-semibold shadow-lg shadow-sky-500/20 hover:shadow-sky-500/35 transition-shadow"
                                         >
                                             Student portal
                                             <FaArrowRight className="text-xs" />

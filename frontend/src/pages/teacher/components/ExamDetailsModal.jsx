@@ -13,10 +13,10 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-slate-950 text-slate-100 rounded-3xl shadow-2xl ring-1 ring-white/10 max-w-3xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="bg-gradient-to-r from-[#5c8374] to-[#092635] dark:from-[#5c8374] dark:to-[#092635] p-6 text-white sticky top-0">
+                <div className="bg-slate-900/95 border-b border-slate-700 p-6 sticky top-0 backdrop-blur-sm">
                     <div className="flex justify-between items-start gap-4">
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-3">
@@ -25,7 +25,7 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                 </span>
                                 <button
                                     onClick={onCopyCode}
-                                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-all text-sm"
+                                    className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/90 border border-slate-700/70 px-3 py-1.5 rounded-lg transition-all text-sm"
                                 >
                                     {copiedCode === exam.examCode ? (
                                         <>
@@ -40,11 +40,11 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                     )}
                                 </button>
                             </div>
-                            <h2 className="text-2xl font-bold">{exam.title}</h2>
+                            <h2 className="text-2xl font-semibold text-slate-100">{exam.title}</h2>
                         </div>
                         <button
                             onClick={onClose}
-                            className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-all flex-shrink-0"
+                            className="bg-slate-800/80 hover:bg-slate-700/90 p-2 rounded-lg transition-all flex-shrink-0"
                         >
                             <X size={20} />
                         </button>
@@ -66,12 +66,12 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                             Exam Details
                         </h3>
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-[#9ec8b9] dark:bg-[#092635]/20 rounded-xl p-5 border border-[#9ec8b9] dark:border-[#092635]">
-                                <div className="flex items-center gap-2 text-[#1b4242] dark:text-[#5c8374] mb-3">
+                            <div className="bg-slate-950/90 rounded-xl p-5 border border-slate-700">
+                                <div className="flex items-center gap-2 text-slate-300 mb-3">
                                     <Clock size={18} />
                                     <span className="text-sm font-semibold">Duration</span>
                                 </div>
-                                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                <p className="text-3xl font-semibold text-slate-100">
                                     {exam.duration}
                                     <span className="text-lg font-normal text-gray-600 dark:text-gray-400 ml-2">
                                         minutes
@@ -79,12 +79,12 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                 </p>
                             </div>
 
-                            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-5 border border-green-200 dark:border-green-800">
-                                <div className="flex items-center gap-2 text-green-700 dark:text-green-300 mb-3">
+                            <div className="bg-slate-950/90 rounded-xl p-5 border border-slate-700">
+                                <div className="flex items-center gap-2 text-slate-300 mb-3">
                                     <Award size={18} />
                                     <span className="text-sm font-semibold">Total Marks</span>
                                 </div>
-                                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                                <p className="text-3xl font-semibold text-slate-100">
                                     {exam.totalMarks}
                                     <span className="text-lg font-normal text-gray-600 dark:text-gray-400 ml-2">
                                         marks
@@ -103,20 +103,20 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                 exam.questions.map((q, idx) => (
                                     <div
                                         key={q._id || idx}
-                                        className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-[#5c8374] dark:hover:border-[#5c8374] transition"
+                                        className="bg-slate-950/90 p-4 rounded-lg border border-slate-700 hover:border-slate-500 transition"
                                     >
                                         <div className="flex items-start justify-between gap-3 mb-2">
-                                            <p className="font-semibold text-gray-900 dark:text-gray-100">
-                                                Q{idx + 1}. <span className="text-[#092635] dark:text-[#9ec8b9]">{q.questionText}</span>
+                                            <p className="font-semibold text-slate-100">
+                                                Q{idx + 1}. <span className="text-slate-300">{q.questionText}</span>
                                             </p>
-                                            <span className="px-2.5 py-1 bg-[#f0f8f7] dark:bg-[#5c8374]/30 text-[#5c8374] dark:text-[#9ec8b9] text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0">
+                                            <span className="px-2.5 py-1 bg-slate-800 text-slate-300 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0">
                                                 {q.marks} marks
                                             </span>
                                         </div>
                                         {q.image && <img className="h-[50%] w-[50%]" rel="question image" aria-label="question image" src={q.image}></img>}
 
                                         {q.type === "mcq" && q.options && (
-                                            <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-gray-700 dark:text-gray-400 text-sm">
+                                            <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-slate-300 text-sm">
                                                 {q.options.map((opt, i) => (
                                                     <li key={i}>{opt}</li>
                                                 ))}
@@ -160,11 +160,11 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-5 border border-gray-200 dark:border-gray-600">
-                                <Calendar className="text-[#1b4242] dark:text-[#5c8374] mt-1 flex-shrink-0" size={20} />
+                            <div className="flex items-start gap-4 bg-slate-950/90 rounded-lg p-5 border border-slate-700">
+                                <Calendar className="text-slate-400 mt-1 flex-shrink-0" size={20} />
                                 <div>
-                                    <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2">End Time</p>
-                                    <p className="text-gray-600 dark:text-gray-400">
+                                    <p className="font-semibold text-slate-100 mb-2">End Time</p>
+                                    <p className="text-slate-300">
                                         {new Date(exam.endTime).toLocaleString("en-US", {
                                             weekday: "long",
                                             year: "numeric",
@@ -183,10 +183,10 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                         <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-3 tracking-wide">
                             Additional Information
                         </h3>
-                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-5 border border-gray-200 dark:border-gray-600 space-y-3 text-sm">
+                        <div className="bg-slate-950/90 rounded-lg p-5 border border-slate-700/90 space-y-3 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">Created On</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
+                                <span className="text-slate-300">Created On</span>
+                                <span className="font-medium text-slate-100">
                                     {new Date(exam.createdAt).toLocaleDateString("en-US", {
                                         year: "numeric",
                                         month: "long",

@@ -91,25 +91,21 @@ export default function TeacherDashboard() {
 
     return (
         <div className="relative min-h-screen bg-gray-950 text-gray-100 overflow-hidden">
-            <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-indigo-600/15 rounded-full blur-[130px] pointer-events-none" />
-            <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-violet-600/15 rounded-full blur-[130px] pointer-events-none" />
-
+            <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-slate-700/15 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-sky-400/10 rounded-full blur-[130px] pointer-events-none" />
             <div className="relative max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pt-24 sm:pt-28 lg:pt-32">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
                     <div>
-                        <span className="inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                        <span className="inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20">
                             Instructor Workspace
                         </span>
-                        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-2">
-                            Teacher{" "}
-                            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                                Dashboard
-                            </span>
+                        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-2 text-slate-100">
+                            Teacher Dashboard
                         </h1>
                         <div className="flex items-center gap-3 text-gray-400">
                             <span>Manage and monitor your exams</span>
                             {stats.live > 0 && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-500/10 text-emerald-300 text-xs font-semibold rounded-full border border-emerald-500/20">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-800/80 text-slate-300 text-xs font-semibold rounded-full border border-slate-700">
                                     <span className="relative flex h-1.5 w-1.5">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
@@ -121,7 +117,7 @@ export default function TeacherDashboard() {
                     </div>
                     <Link
                         to="/create-exam"
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02] whitespace-nowrap"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white font-semibold shadow-lg shadow-slate-900/30 hover:bg-slate-700 transition-all duration-300 whitespace-nowrap"
                     >
                         <PlusCircle size={20} />
                         Create Exam
@@ -168,9 +164,9 @@ export default function TeacherDashboard() {
 
                 {exams?.length === 0 ? (
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-12 text-center">
-                        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-72 h-72 bg-violet-500/15 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-72 h-72 bg-slate-600/15 rounded-full blur-3xl pointer-events-none" />
                         <div className="relative max-w-md mx-auto">
-                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 mx-auto mb-6 shadow-lg shadow-violet-500/30">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-slate-800 mx-auto mb-6 shadow-lg shadow-slate-900/40">
                                 <FileText size={36} className="text-white" />
                             </div>
                             <h3 className="text-2xl font-bold text-white mb-3">
@@ -181,7 +177,7 @@ export default function TeacherDashboard() {
                             </p>
                             <Link
                                 to="/create-exam"
-                                className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white font-semibold shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.02]"
+                                className="inline-flex items-center gap-2 px-7 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white font-semibold shadow-lg shadow-slate-900/40 hover:bg-slate-700 transition-all duration-300"
                             >
                                 <PlusCircle size={20} />
                                 Create Your First Exam
@@ -219,50 +215,47 @@ export default function TeacherDashboard() {
 
 const accentMap = {
     indigo: {
-        iconWrap: "bg-indigo-500/15 text-indigo-300 border-indigo-500/20",
-        glow: "hover:shadow-indigo-500/10 hover:border-indigo-500/30",
+        iconWrap: "bg-sky-500/15 text-sky-300 border-sky-500/20",
+        glow: "hover:shadow-sky-500/10 hover:border-sky-500/30",
     },
     emerald: {
-        iconWrap: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20",
-        glow: "hover:shadow-emerald-500/10 hover:border-emerald-500/30",
+        iconWrap: "bg-sky-500/15 text-sky-300 border-sky-500/20",
+        glow: "hover:shadow-sky-500/10 hover:border-sky-500/30",
     },
     amber: {
-        iconWrap: "bg-amber-500/15 text-amber-300 border-amber-500/20",
-        glow: "hover:shadow-amber-500/10 hover:border-amber-500/30",
+        iconWrap: "bg-slate-500/15 text-slate-300 border-slate-500/20",
+        glow: "hover:shadow-slate-500/10 hover:border-slate-500/30",
     },
     violet: {
-        iconWrap: "bg-violet-500/15 text-violet-300 border-violet-500/20",
-        glow: "hover:shadow-violet-500/10 hover:border-violet-500/30",
+        iconWrap: "bg-slate-500/15 text-slate-300 border-slate-500/20",
+        glow: "hover:shadow-slate-500/10 hover:border-slate-500/30",
     },
 };
 
 function DashboardSkeleton() {
     return (
         <div className="relative min-h-screen bg-gray-950 text-gray-700 overflow-hidden animate-pulse">
-            <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-indigo-600/15 rounded-full blur-[130px] pointer-events-none" />
-            <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-violet-600/15 rounded-full blur-[130px] pointer-events-none" />
-
-            <div className="relative max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pt-24 sm:pt-28 lg:pt-32">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
-                    <div className="space-y-4 w-full sm:w-auto">
-                        <div className="h-5 w-40 rounded-full bg-white/10" />
-                        <div className="h-12 w-72 rounded-full bg-white/10" />
-                        <div className="h-4 w-56 rounded-full bg-white/10" />
-                    </div>
-                    <div className="h-12 w-48 rounded-xl bg-white/10" />
+            <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-slate-700/15 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-sky-400/10 rounded-full blur-[130px] pointer-events-none" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
+                <div className="space-y-4 w-full sm:w-auto">
+                    <div className="h-5 w-40 rounded-full bg-white/10" />
+                    <div className="h-12 w-72 rounded-full bg-white/10" />
+                    <div className="h-4 w-56 rounded-full bg-white/10" />
                 </div>
+                <div className="h-12 w-48 rounded-xl bg-white/10" />
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={index} className="h-36 rounded-3xl border border-white/10 bg-white/5 p-5" />
-                    ))}
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+                {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={index} className="h-36 rounded-3xl border border-white/10 bg-white/5 p-5" />
+                ))}
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Array.from({ length: 3 }).map((_, index) => (
-                        <div key={index} className="rounded-xl p-5 border border-white/10 bg-white/5 h-56" />
-                    ))}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="rounded-xl p-5 border border-white/10 bg-white/5 h-56" />
+                ))}
             </div>
         </div>
     );

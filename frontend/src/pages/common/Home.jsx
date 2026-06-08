@@ -17,31 +17,31 @@ function Home() {
     const features = [
         {
             icon: <FaShieldAlt className="text-3xl text-white" />,
-            iconBg: "from-indigo-500 to-violet-600",
-            title: "AI-Powered Proctoring",
+            iconBg: "from-sky-500 to-cyan-600",
+            title: "Secure Proctoring",
             description:
                 "Real-time webcam analysis flags suspicious behavior the moment it happens keeping every exam fair.",
         },
         {
             icon: <FaLock className="text-3xl text-white" />,
-            iconBg: "from-violet-500 to-fuchsia-600",
+            iconBg: "from-emerald-500 to-teal-600",
             title: "Lockdown Mode",
             description:
                 "Prevents tab switching, copy-paste, and external app access so students stay focused on the exam.",
         },
         {
             icon: <FaLaptopCode className="text-3xl text-white" />,
-            iconBg: "from-fuchsia-500 to-pink-600",
+            iconBg: "from-amber-500 to-orange-500",
             title: "Multi-Format Workspace",
             description:
                 "MCQs, code, descriptive text, and diagrams all answered in one unified, distraction-free editor.",
         },
         {
             icon: <FaChartLine className="text-3xl text-white" />,
-            iconBg: "from-emerald-500 to-teal-600",
+            iconBg: "from-slate-500 to-sky-600",
             title: "Live Teacher Dashboard",
             description:
-                "Monitor every student in real time, receive AI alerts, and intervene the moment integrity is at risk.",
+                "Monitor every student in real time, receive alerts, and intervene the moment integrity is at risk.",
         },
     ];
 
@@ -54,7 +54,7 @@ function Home() {
                     Click{" "}
                     <a
                         href="/exam"
-                        className="text-indigo-400 hover:text-indigo-300 font-semibold underline-offset-4 hover:underline transition-colors"
+                        className="text-sky-300 hover:text-sky-200 font-semibold underline-offset-4 hover:underline transition-colors"
                     >
                         Start Exam
                     </a>
@@ -88,7 +88,7 @@ function Home() {
         {
             step: "03",
             title: "Monitor Live",
-            desc: "Track student activity in real time with AI-driven proctoring alerts.",
+            desc: "Track student activity in real time with proctoring alerts.",
         },
         {
             step: "04",
@@ -98,12 +98,12 @@ function Home() {
     ];
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-950 text-gray-100" id="home">
+        <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100" id="home">
             <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-950 via-slate-950 to-gray-950" />
-                <div className="absolute -top-40 -left-40 w-[40rem] h-[40rem] bg-indigo-600/20 rounded-full blur-[130px]" />
-                <div className="absolute top-1/2 -right-40 w-[40rem] h-[40rem] bg-violet-600/20 rounded-full blur-[130px]" />
-                <div className="absolute bottom-0 left-1/3 w-[30rem] h-[30rem] bg-fuchsia-600/15 rounded-full blur-[130px]" />
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+                <div className="absolute -top-40 -left-40 w-[40rem] h-[40rem] bg-slate-900/12 rounded-full blur-[130px]" />
+                <div className="absolute top-1/2 -right-40 w-[40rem] h-[40rem] bg-sky-400/10 rounded-full blur-[130px]" />
+                <div className="absolute bottom-0 left-1/3 w-[30rem] h-[30rem] bg-emerald-400/10 rounded-full blur-[130px]" />
 
                 <div
                     className="absolute inset-0 opacity-[0.04]"
@@ -119,27 +119,26 @@ function Home() {
                         <img
                             src="/logo3.svg"
                             alt="Assessify"
-                            className="w-28 h-28 md:w-32 md:h-32 cursor-pointer hover:rotate-12 transition-transform duration-300 drop-shadow-[0_0_40px_rgba(139,92,246,0.45)]"
+                            className="w-28 h-28 md:w-32 md:h-32 cursor-pointer hover:rotate-12 transition-transform duration-300 drop-shadow-[0_0_20px_rgba(14,165,233,0.22)]"
                         />
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.05]">
                         Online exams, reimagined with{" "}
-                        <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-                            AI integrity
+                        <span className="text-slate-100">
+                            trusted integrity
                         </span>
                     </h1>
 
                     <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-                        Assessify is a secure, multi-format examination platform built for
-                        Computer Science programs code, MCQs, diagrams, and text in a single,
+                        Assessify is a secure, multi-format examination platform with code, MCQs, diagrams, and text in a single,
                         proctored workspace.
                     </p>
 
                     <div className="flex gap-4 flex-wrap justify-center">
                         <a
                             href="/exam"
-                            className="group inline-flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 rounded-full font-semibold text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300 hover:scale-[1.03]"
+                            className="group inline-flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 rounded-full font-semibold text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all duration-300 hover:scale-[1.03]"
                         >
                             <FaPlay className="text-sm" />
                             Start Exam
@@ -153,38 +152,38 @@ function Home() {
                         </a>
                     </div>
 
-                    <div className="mt-14 flex flex-wrap justify-center items-center gap-x-10 gap-y-4 text-sm text-gray-400">
+                    <div className="mt-14 flex flex-wrap justify-center items-center gap-x-10 gap-y-4 text-sm text-slate-300">
                         <div className="flex items-center gap-2">
-                            <FaCheckCircle className="text-emerald-400" />
+                            <FaCheckCircle className="text-emerald-300" />
                             Tamper-proof environment
                         </div>
                         <div className="flex items-center gap-2">
-                            <FaCheckCircle className="text-emerald-400" />
-                            Real-time AI alerts
+                            <FaCheckCircle className="text-emerald-300" />
+                            Real-time monitoring alerts
                         </div>
                         <div className="flex items-center gap-2">
-                            <FaCheckCircle className="text-emerald-400" />
-                            Mainly Built for CS programs
+                            <FaCheckCircle className="text-emerald-300" />
+                            Built for secure exam delivery
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section id="features" className="relative py-24 bg-gray-950">
+            <section id="features" className="relative py-24 bg-slate-950">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16 max-w-3xl mx-auto">
-                        <span className="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider uppercase rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                        <span className="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider uppercase rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20">
                             Core Capabilities
                         </span>
                         <h2 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
                             Everything you need to run{" "}
-                            <span className="bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-transparent">
-                                fair, modern exams
+                            <span className="bg-gradient-to-r from-sky-400 to-emerald-300 bg-clip-text text-transparent">
+                                secure, modern exams
                             </span>
                         </h2>
-                        <p className="text-lg text-gray-400">
-                            A complete, AI-driven solution for secure, intelligent, and
+                        <p className="text-lg text-slate-400">
+                            A complete, intelligent solution for secure, modern, and
                             scalable online assessments.
                         </p>
                     </div>
@@ -193,7 +192,7 @@ function Home() {
                         {features.map((feature, index) => (
                             <div
                                 key={index}
-                                className="group relative p-6 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 hover:border-white/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-violet-500/10"
+                                className="group relative p-6 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 hover:border-sky-500/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-sky-500/10"
                             >
                                 <div
                                     className={`inline-flex items-center justify-center w-14 h-14 mb-5 rounded-xl bg-gradient-to-br ${feature.iconBg} shadow-lg group-hover:scale-110 transition-transform duration-300`}
@@ -212,16 +211,16 @@ function Home() {
                 </div>
             </section>
 
-            <section className="relative py-24 bg-gray-950">
+            <section className="relative py-24 bg-slate-950">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="text-center mb-20 max-w-3xl mx-auto">
-                        <span className="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider uppercase rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                        <span className="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider uppercase rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20">
                             Workflow
                         </span>
                         <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
                             How{" "}
-                            <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-r from-sky-400 to-emerald-300 bg-clip-text text-transparent">
                                 Assessify
                             </span>{" "}
                             works
@@ -233,7 +232,7 @@ function Home() {
 
                     <div className="mb-24">
                         <div className="flex items-center justify-center mb-12">
-                            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/30 text-indigo-200">
+                            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-sky-500/20 to-emerald-500/20 border border-sky-500/30 text-sky-200">
                                 <FaUsers className="text-base" />
                                 <span className="text-sm font-semibold tracking-wide uppercase">
                                     For Students
@@ -245,9 +244,9 @@ function Home() {
                             {studentSteps.map((item, index) => (
                                 <div
                                     key={index}
-                                    className="group relative p-7 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 hover:border-indigo-500/40 transition-all duration-300 hover:-translate-y-1"
+                                    className="group relative p-7 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 hover:border-sky-500/40 transition-all duration-300 hover:-translate-y-1"
                                 >
-                                    <div className="absolute -top-4 left-7 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-bold shadow-lg shadow-indigo-500/25 group-hover:scale-110 transition-transform">
+                                    <div className="absolute -top-4 left-7 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-cyan-500 text-white font-bold shadow-lg shadow-sky-500/20 group-hover:scale-110 transition-transform">
                                         {item.step}
                                     </div>
                                     <h4 className="text-xl font-semibold text-white mt-6 mb-3">
@@ -263,7 +262,7 @@ function Home() {
 
                     <div>
                         <div className="flex items-center justify-center mb-12">
-                            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 text-violet-200">
+                            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-emerald-500/20 to-slate-500/20 border border-emerald-500/30 text-emerald-200">
                                 <FaChartLine className="text-base" />
                                 <span className="text-sm font-semibold tracking-wide uppercase">
                                     For Teachers
@@ -275,9 +274,9 @@ function Home() {
                             {teacherSteps.map((item, index) => (
                                 <div
                                     key={index}
-                                    className="group relative p-7 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 hover:border-violet-500/40 transition-all duration-300 hover:-translate-y-1"
+                                    className="group relative p-7 rounded-2xl bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 hover:border-emerald-500/40 transition-all duration-300 hover:-translate-y-1"
                                 >
-                                    <div className="absolute -top-4 left-7 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white font-bold shadow-lg shadow-violet-500/25 group-hover:scale-110 transition-transform">
+                                    <div className="absolute -top-4 left-7 inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white font-bold shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
                                         {item.step}
                                     </div>
                                     <h4 className="text-xl font-semibold text-white mt-6 mb-3">
@@ -296,15 +295,15 @@ function Home() {
             <section className="relative py-20">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 <div className="max-w-5xl mx-auto px-6">
-                    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-indigo-600/20 via-violet-600/20 to-fuchsia-600/20 p-10 md:p-14 text-center">
-                        <div className="absolute -top-20 -left-20 w-60 h-60 bg-indigo-500/30 rounded-full blur-3xl" />
-                        <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-fuchsia-500/30 rounded-full blur-3xl" />
+                    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-sky-600/20 via-emerald-600/20 to-amber-500/20 p-10 md:p-14 text-center">
+                        <div className="absolute -top-20 -left-20 w-60 h-60 bg-sky-500/20 rounded-full blur-3xl" />
+                        <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-amber-400/20 rounded-full blur-3xl" />
                         <div className="relative">
                             <h3 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">
                                 Ready to host your next exam with confidence?
                             </h3>
                             <p className="text-gray-300 mb-8 max-w-xl mx-auto">
-                                Join instructors and institutions running secure, AI-proctored
+                                Join instructors and institutions running secure, proctored
                                 assessments on Assessify.
                             </p>
                             <a
@@ -319,7 +318,7 @@ function Home() {
                 </div>
             </section>
 
-            <footer className="border-t border-white/10 bg-gray-950">
+            <footer className="border-t border-white/10 bg-slate-950">
                 <div className="max-w-7xl mx-auto px-6 py-14">
                     <div className="grid md:grid-cols-3 gap-12 mb-10">
                         <div>
@@ -327,12 +326,12 @@ function Home() {
                                 <img src="/logo3.svg" alt="Assessify" className="w-9 h-9" />
                                 <span className="text-2xl font-bold">
                                     <span className="text-white">Assess</span>
-                                    <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">ify</span>
-                                    <span className="text-fuchsia-400">.</span>
+                                    <span className="bg-gradient-to-r from-sky-400 to-emerald-300 bg-clip-text text-transparent">ify</span>
+                                    <span className="text-amber-300">.</span>
                                 </span>
                             </div>
                             <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
-                                Revolutionizing online assessments with AI-powered security and
+                                Revolutionizing online assessments with real-time security and
                                 intelligent evaluation.
                             </p>
                         </div>
@@ -345,7 +344,7 @@ function Home() {
                                 <li>
                                     <a
                                         href="#home"
-                                        className="text-gray-400 hover:text-indigo-300 transition-colors"
+                                        className="text-gray-400 hover:text-sky-300 transition-colors"
                                     >
                                         Home
                                     </a>
@@ -353,7 +352,7 @@ function Home() {
                                 <li>
                                     <a
                                         href="/exam"
-                                        className="text-gray-400 hover:text-indigo-300 transition-colors"
+                                        className="text-gray-400 hover:text-sky-300 transition-colors"
                                     >
                                         Start Exam
                                     </a>
@@ -361,7 +360,7 @@ function Home() {
                                 <li>
                                     <a
                                         href="#features"
-                                        className="text-gray-400 hover:text-indigo-300 transition-colors"
+                                        className="text-gray-400 hover:text-sky-300 transition-colors"
                                     >
                                         Features
                                     </a>
@@ -369,7 +368,7 @@ function Home() {
                                 <li>
                                     <a
                                         href="/docs"
-                                        className="text-gray-400 hover:text-indigo-300 transition-colors"
+                                        className="text-gray-400 hover:text-sky-300 transition-colors"
                                     >
                                         Documentation
                                     </a>
@@ -387,7 +386,7 @@ function Home() {
                                     rel="noreferrer"
                                     href="#"
                                     aria-label="GitHub"
-                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all"
+                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-sky-500/40 hover:bg-sky-500/10 transition-all"
                                 >
                                     <FaGithub />
                                 </a>
@@ -396,7 +395,7 @@ function Home() {
                                     rel="noreferrer"
                                     href="#"
                                     aria-label="LinkedIn"
-                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all"
+                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-sky-500/40 hover:bg-sky-500/10 transition-all"
                                 >
                                     <FaLinkedin />
                                 </a>
@@ -405,14 +404,14 @@ function Home() {
                                     rel="noreferrer"
                                     href="#"
                                     aria-label="Twitter"
-                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all"
+                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-sky-500/40 hover:bg-sky-500/10 transition-all"
                                 >
                                     <FaTwitter />
                                 </a>
                                 <a
                                     href="mailto:assessify.iust@gmail.com"
                                     aria-label="Email"
-                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-indigo-500/40 hover:bg-indigo-500/10 transition-all"
+                                    className="w-10 h-10 inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-sky-500/40 hover:bg-sky-500/10 transition-all"
                                 >
                                     <FaEnvelope />
                                 </a>

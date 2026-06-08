@@ -215,11 +215,11 @@ export default function CreateExam() {
                 }
             }
             if (questions[i].type === "text" && !questions[i].referenceAnswer?.trim()) {
-                toast.error(`Question ${i + 1} (Text) needs a reference answer for AI evaluation`);
+                toast.error(`Question ${i + 1} (Text) needs a reference answer for automatic evaluation`);
                 return;
             }
             if (questions[i].type === "code" && !questions[i].referenceCode?.trim()) {
-                toast.error(`Question ${i + 1} (Code) needs a reference solution for AI evaluation`);
+                toast.error(`Question ${i + 1} (Code) needs a reference solution for automatic evaluation`);
                 return;
             }
         }
@@ -303,7 +303,7 @@ export default function CreateExam() {
     };
 
     const inputClass =
-        "w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/50 transition";
+        "w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500/50 transition";
     const inputIconClass = inputClass + " pl-11";
 
     const renderCompletedQuestion = (q, index) => {
@@ -324,7 +324,7 @@ export default function CreateExam() {
                     <div className="flex gap-2">
                         <button
                             onClick={() => editQuestion(index)}
-                            className="text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 p-2 rounded-lg transition-all"
+                            className="text-sky-300 hover:text-sky-200 hover:bg-sky-500/10 border border-transparent hover:border-sky-500/30 p-2 rounded-lg transition-all"
                             title="Edit Question"
                         >
                             <Edit2 className="w-4 h-4" />
@@ -342,7 +342,7 @@ export default function CreateExam() {
                 <div className="space-y-3">
                     <div className="flex justify-between items-start gap-4">
                         <p className="text-gray-200 text-base leading-relaxed flex-1 whitespace-pre-wrap">{q.questionText}</p>
-                        <span className="px-3 py-1 bg-violet-500/15 text-violet-300 border border-violet-500/30 rounded-full text-xs font-semibold whitespace-nowrap">
+                        <span className="px-3 py-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-full text-xs font-semibold whitespace-nowrap">
                             {q.marks} marks
                         </span>
                     </div>
@@ -519,11 +519,11 @@ export default function CreateExam() {
                             htmlFor={`reference-answer-${index}`}
                             className="block text-xs font-semibold text-emerald-200 mb-2 uppercase tracking-wider"
                         >
-                            Reference Answer (used by AI auto evaluation)
+                            Reference Answer (used for auto evaluation)
                         </label>
                         <textarea
                             id={`reference-answer-${index}`}
-                            placeholder="Write the ideal answer / rubric the AI should grade against..."
+                            placeholder="Write the ideal answer / rubric the grading engine should grade against..."
                             value={q.referenceAnswer || ""}
                             onChange={(e) =>
                                 handleQuestionChange(index, "referenceAnswer", e.target.value)
@@ -532,7 +532,7 @@ export default function CreateExam() {
                             rows={5}
                         />
                         <p className="text-xs text-emerald-300/80 mt-2">
-                            The AI compares each student answer to this reference. Be specific so the grading is consistent.
+                            The grading engine compares each student answer to this reference. Be specific so scoring stays consistent.
                         </p>
                     </div>
                 )}
@@ -543,11 +543,11 @@ export default function CreateExam() {
                             htmlFor={`reference-code-${index}`}
                             className="block text-xs font-semibold text-sky-200 mb-2 uppercase tracking-wider"
                         >
-                            Reference Solution Code (used by AI auto evaluation)
+                            Reference Solution Code (used for auto evaluation)
                         </label>
                         <textarea
                             id={`reference-code-${index}`}
-                            placeholder="// Paste the canonical solution. The AI will not execute it; it grades against this reference."
+                            placeholder="// Paste the canonical solution. The grading engine will not execute it; it grades against this reference."
                             value={q.referenceCode || ""}
                             onChange={(e) =>
                                 handleQuestionChange(index, "referenceCode", e.target.value)
@@ -577,19 +577,19 @@ export default function CreateExam() {
 
     return (
         <div className="relative min-h-screen bg-gray-950 text-gray-100 overflow-hidden">
-            <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-indigo-600/15 rounded-full blur-[130px] pointer-events-none" />
-            <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-violet-600/15 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-slate-700/15 rounded-full blur-[130px] pointer-events-none" />
+            <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-sky-400/10 rounded-full blur-[130px] pointer-events-none" />
 
             <div className="relative max-w-5xl mx-auto pb-12 pt-24 sm:pt-28 lg:pt-32 px-4 sm:px-6 lg:px-8">
-                <div className="rounded-2xl p-6 sm:p-8 mb-6 bg-gradient-to-br from-indigo-600/15 via-violet-600/15 to-fuchsia-600/15 border border-white/10">
+                <div className="rounded-2xl p-6 sm:p-8 mb-6 bg-gradient-to-br from-slate-800/15 via-slate-700/15 to-slate-900/10 border border-white/10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                         <div>
-                            <span className="inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                            <span className="inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
                                 New Assessment
                             </span>
                             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
                                 Create New{" "}
-                                <span className="bg-gradient-to-r from-indigo-400 to-fuchsia-400 bg-clip-text text-transparent">
+                                <span className="bg-gradient-to-r from-sky-300 to-emerald-300 bg-clip-text text-transparent">
                                     Exam
                                 </span>
                             </h1>
@@ -598,14 +598,14 @@ export default function CreateExam() {
                             </p>
                         </div>
                         <div className="self-start sm:self-auto px-4 py-2 rounded-full font-semibold bg-white/5 border border-white/10 text-white whitespace-nowrap">
-                            Total: <span className="text-violet-300 tabular-nums">{totalMarks}</span> marks
+                            Total: <span className="text-sky-300 tabular-nums">{totalMarks}</span> marks
                         </div>
                     </div>
                 </div>
 
                 <div className="rounded-2xl p-6 sm:p-8 mb-6 bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10">
                     <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-violet-400" />
+                        <Calendar className="w-5 h-5 text-sky-400" />
                         Exam Details
                     </h2>
 
@@ -751,7 +751,7 @@ export default function CreateExam() {
                 <div className="rounded-2xl p-6 sm:p-8 mb-6 bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
                         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-violet-400" />
+                            <FileText className="w-5 h-5 text-sky-400" />
                             Questions{" "}
                             <span className="text-gray-500 font-normal">({questions.length})</span>
                         </h2>
