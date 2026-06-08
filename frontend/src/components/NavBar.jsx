@@ -83,8 +83,8 @@ function NavBar() {
                         </div>
                         <span className="text-2xl font-bold">
                             <span className="text-white">Assess</span>
-                            <span className="bg-gradient-to-r from-sky-400 to-emerald-300 bg-clip-text text-transparent">ify</span>
-                            <span className="text-amber-300">.</span>
+                            <span className="bg-gradient-to-r from-sky-900 to-emerald-100 bg-clip-text text-transparent">ify</span>
+                            <span className="text-amber-400">.</span>
                         </span>
                     </Link>
 

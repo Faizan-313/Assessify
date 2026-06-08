@@ -123,9 +123,9 @@ function Home() {
                         />
                     </div>
 
-                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.05]">
+                    <h1 className="text-5xl md:text-7xl text-emerald-500 font-extrabold tracking-tight mb-6 leading-[1.05]">
                         Online exams, reimagined with{" "}
-                        <span className="text-slate-100">
+                        <span className="text-amber-200">
                             trusted integrity
                         </span>
                     </h1>

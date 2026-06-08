@@ -121,7 +121,7 @@ function Docs() {
 
                     <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
                         Assessify{" "}
-                        <span className="bg-gradient-to-r from-sky-300 via-emerald-300 to-amber-300 bg-clip-text text-transparent">
+                        <span className="bg-gradient-to-r from-sky-100 via-emerald-400 to-amber-700 bg-clip-text text-transparent">
                             product guide
                         </span>
                     </h1>
