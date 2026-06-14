@@ -54,9 +54,9 @@ async function evaluateWithAi({ question, answerText, kind }) {
             if(kind === "text"){
                 const teacherAnswer = question?.evaluationConfig?.referenceAnswer || "";
 
-                const url = process.env.TEXT_GRADING_MICROSERVICE_URL || "http://127.0.0.1:8000/text-evaluate";
-                
-                const response = await axios.post(url, {
+                const url = process.env.TEXT_GRADING_MICROSERVICE_URL || "http://127.0.0.1:8000";
+
+                const response = await axios.post(`${url}/text-evaluate`, {
                     teacherAnswer,
                     studentAnswer: String(answerText),
                 });
