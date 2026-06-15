@@ -191,7 +191,7 @@ class RunnerRequestHandler(BaseHTTPRequestHandler):
         })
 
     def do_POST(self):
-        if urlparse(self.path).path != "/evaluate":
+        if urlparse(self.path).path != "/code-evaluate":
             self.write_json(404, {
                 "success": False,
                 "message": "Endpoint not found"
@@ -220,7 +220,7 @@ class RunnerRequestHandler(BaseHTTPRequestHandler):
 
 def run_server():
     server = ThreadingHTTPServer(("0.0.0.0", 7000), RunnerRequestHandler)
-    print("Code runner listening on http://0.0.0.0:7000", flush=True)
+    print("Code runner listening on port 7000", flush=True)
     server.serve_forever()
 
 
