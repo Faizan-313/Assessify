@@ -28,6 +28,7 @@ Built using modern technologies such as **React.js**, **Node.js**, and **MongoDB
 | **Backend** | Node.js, Express.js, Socket.io |
 | **Database** | MongoDB, Cloudinary |
 | **AI Monitoring** | TensorFlow, MediaPipe |
+| **Auto Evaluation** | Python, Docker, Fastapi, Sentence Transformers |
 
 ---
 
@@ -41,7 +42,8 @@ Built using modern technologies such as **React.js**, **Node.js**, and **MongoDB
 ### Teachers
 - **Live Dashboard** — Monitor active students, alerts, and submissions in real time  
 - **Alerts** — Suspicious activities flagged automatically  
-- **Exam Management** — Create, schedule, and manage exams with full administrative control  
+- **Exam Management** — Create, schedule, and manage exams with full administrative control 
+- **Auto Evaluation** — Do the auto evalution of papers 
 
 ---
 
@@ -54,7 +56,7 @@ Built using modern technologies such as **React.js**, **Node.js**, and **MongoDB
 | **Exam Workspace** | Unified and responsive student interface with integrated editors |
 | **AI Proctoring** | Real-time anomaly detection using webcam input |
 | **Teacher Dashboard** | Live monitoring, AI alerts, and performance insights |
-| **Result Management** | Exam evaluation and reporting |
+| **Result Management** | Exam manula and auto evaluation |
 
 ---
 
@@ -121,6 +123,16 @@ TEMP_TOKEN_SECRET=
 EMAIL_USER=
 EMAIL_PASS=
 
+#for local evalution with docker
+TEXT_GRADING_MICROSERVICE_URL=
+CODE_GRADING_MICROSERVICE_URL=
+
+#for gemini evaluation
+GEMINI_API_KEY=
+GEMINI_GRADER_MODEL=
+
+SYSTEM_PROMPT_TEXT=
+SYSTEM_PROMPT_CODE=
 ```
 
 3. Frontend — install, configure, and run
@@ -142,6 +154,38 @@ Frontend .env template (frontend/.env)
 ```env
 VITE_API_URL=
 ```
+
+## Evaluation Engine (Code + Text Evaluation Microservice)
+Assessify includes a dedicated AI-powered Evaluation Microservice responsible for automatically grading both programming solutions and descriptive (theoretical) answers in real time.
+
+The evaluation system is designed with two separate execution strategies depending on the environment:
+
+### Local Development Mode:
+Uses a dedicated Evaluation Microservice for code execution, test case validation, and text evaluation.
+### Production Mode:
+Uses Google Gemini (LLM-based evaluation) for intelligent assessment of both code quality and textual explanations.
+
+### Evaluation Flow
+Student submits an answer (code / text / mixed format)
+System determines environment (local or production)
+Evaluation is triggered via:
+Microservice (local)
+Gemini API (production)
+Response is normalized into a unified scoring format
+Result is stored and shown in the Teacher Dashboard
+
+### Evaluation Microservice Documentation
+For detailed implementation, API structure, and architecture of the local evaluation system, refer to:
+👉 https://github.com/Faizan-313/Assessify/blob/main/microservices/README.md
+
+### Benefits of This Architecture
+Ensures consistent evaluation logic across environments
+Enables offline/local testing without external API dependency
+Uses Gemini in production for advanced semantic evaluation
+Improves scalability and reliability of grading system
+Supports both deterministic (test-case based) and AI-based scoring
+
+(why we are using two seperate logics for evaluation has simple answer -> it is easy to use gemini for production as compared to our own microservice evaluation)
 
 
 Notes
