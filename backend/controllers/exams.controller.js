@@ -84,8 +84,17 @@ const createExam = async (req, res) => {
                 if (q.type === "text" && typeof q.referenceAnswer === "string" && q.referenceAnswer.trim() !== "") {
                     evaluationConfig.referenceAnswer = q.referenceAnswer.trim();
                 }
-                if (q.type === "code" && typeof q.referenceCode === "string" && q.referenceCode.trim() !== "") {
-                    evaluationConfig.referenceCode = q.referenceCode;
+                if (q.type === "code" && Array.isArray(q.testCases)) {
+                    const testCases = q.testCases
+                        .map((testCase) => ({
+                            input: typeof testCase?.input === "string" ? testCase.input : "",
+                            output: typeof testCase?.output === "string" ? testCase.output : "",
+                        }))
+                        .filter((testCase) => testCase.output.trim() !== "");
+
+                    if (testCases.length > 0) {
+                        evaluationConfig.testCases = testCases;
+                    }
                 }
                 if (Object.keys(evaluationConfig).length > 0) {
                     question.evaluationConfig = evaluationConfig;
@@ -281,6 +290,7 @@ const submitExam = async (req, res) => {
             answers: answers.map(ans => ({
                 questionId: ans.questionId,
                 answerText: ans.answerText || "",
+                language: ans.type === "code" ? (ans.language || null) : null,
                 marks: ans.marks || 0,
                 questionType: ans.type
             }))

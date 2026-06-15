@@ -6,6 +6,18 @@ import { useNavigate } from "react-router-dom";
 import ImageUploadComponent from "./components/ImageUploadComponent";
 import validateExamDetails from "./utils/validateExamDetails";
 
+const createEmptyTestCase = () => ({ input: "", output: "" });
+
+const normalizeTestCases = (testCases) => {
+    const normalized = Array.isArray(testCases)
+        ? testCases.map((testCase) => ({
+            input: testCase?.input || "",
+            output: testCase?.output || "",
+        }))
+        : [];
+
+    return normalized.length > 0 ? normalized : [createEmptyTestCase()];
+};
 
 export default function CreateExam() {
     const [examDetails, setExamDetails] = useState({
@@ -52,7 +64,7 @@ export default function CreateExam() {
         }
 
         if (type === "code") {
-            newQuestion.referenceCode = "";
+            newQuestion.testCases = [createEmptyTestCase()];
         }
 
         setQuestions([...questions, newQuestion]);
@@ -136,11 +148,11 @@ export default function CreateExam() {
             if (value !== "text") {
                 delete updated[index].referenceAnswer;
             }
-            if (value === "code" && updated[index].referenceCode === undefined) {
-                updated[index].referenceCode = "";
+            if (value === "code") {
+                updated[index].testCases = normalizeTestCases(updated[index].testCases);
             }
             if (value !== "code") {
-                delete updated[index].referenceCode;
+                delete updated[index].testCases;
             }
         }
 
@@ -150,6 +162,33 @@ export default function CreateExam() {
     const handleOptionChange = (qIndex, optIndex, value) => {
         const updated = [...questions];
         updated[qIndex].options[optIndex] = value;
+        setQuestions(updated);
+    };
+
+    const handleTestCaseChange = (qIndex, testIndex, field, value) => {
+        const updated = [...questions];
+        updated[qIndex].testCases = normalizeTestCases(updated[qIndex].testCases);
+        updated[qIndex].testCases[testIndex] = {
+            ...updated[qIndex].testCases[testIndex],
+            [field]: value,
+        };
+        setQuestions(updated);
+    };
+
+    const addTestCase = (qIndex) => {
+        const updated = [...questions];
+        updated[qIndex].testCases = [
+            ...normalizeTestCases(updated[qIndex].testCases),
+            createEmptyTestCase(),
+        ];
+        setQuestions(updated);
+    };
+
+    const removeTestCase = (qIndex, testIndex) => {
+        const updated = [...questions];
+        const nextTestCases = normalizeTestCases(updated[qIndex].testCases)
+            .filter((_, index) => index !== testIndex);
+        updated[qIndex].testCases = nextTestCases.length > 0 ? nextTestCases : [createEmptyTestCase()];
         setQuestions(updated);
     };
 
@@ -218,9 +257,13 @@ export default function CreateExam() {
                 toast.error(`Question ${i + 1} (Text) needs a reference answer for automatic evaluation`);
                 return;
             }
-            if (questions[i].type === "code" && !questions[i].referenceCode?.trim()) {
-                toast.error(`Question ${i + 1} (Code) needs a reference solution for automatic evaluation`);
-                return;
+            if (questions[i].type === "code") {
+                const validTestCases = normalizeTestCases(questions[i].testCases)
+                    .filter((testCase) => testCase.output.trim() !== "");
+                if (validTestCases.length === 0) {
+                    toast.error(`Question ${i + 1} (Code) needs at least one test case with expected output`);
+                    return;
+                }
             }
         }
 
@@ -242,7 +285,12 @@ export default function CreateExam() {
                 ? { options: q.options, correctOption: q.correctAnswer }
                 : {}),
             ...(q.type === 'text' ? { referenceAnswer: q.referenceAnswer || "" } : {}),
-            ...(q.type === 'code' ? { referenceCode: q.referenceCode || "" } : {}),
+            ...(q.type === 'code'
+                ? {
+                    testCases: normalizeTestCases(q.testCases)
+                        .filter((testCase) => testCase.output.trim() !== ""),
+                }
+                : {}),
             hasImage: !!q.image
         }));
 
@@ -376,14 +424,25 @@ export default function CreateExam() {
                         </div>
                     )}
 
-                    {q.type === "code" && q.referenceCode?.trim() && (
+                    {q.type === "code" && normalizeTestCases(q.testCases).some((testCase) => testCase.output.trim()) && (
                         <div className="mt-4 rounded-lg border border-sky-500/20 bg-sky-500/[0.05] p-3">
                             <p className="text-[10px] font-bold uppercase tracking-wider text-sky-300 mb-1">
-                                Reference Code
+                                Test Cases
                             </p>
-                            <pre className="text-sm text-gray-200 whitespace-pre-wrap font-mono leading-relaxed overflow-auto max-h-48">
-                                {q.referenceCode}
-                            </pre>
+                            <div className="space-y-2">
+                                {normalizeTestCases(q.testCases)
+                                    .filter((testCase) => testCase.output.trim())
+                                    .map((testCase, testIndex) => (
+                                        <div key={testIndex} className="rounded-md border border-sky-500/15 bg-gray-950/40 p-2">
+                                            <p className="text-xs font-semibold text-sky-200 mb-1">
+                                                Case {testIndex + 1}
+                                            </p>
+                                            <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono">
+                                                {`Input:\n${testCase.input || "(empty)"}\n\nExpected output:\n${testCase.output}`}
+                                            </pre>
+                                        </div>
+                                    ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -539,26 +598,83 @@ export default function CreateExam() {
 
                 {q.type === "code" && (
                     <div className="bg-sky-500/[0.06] p-4 rounded-xl border border-sky-500/20 mb-4">
-                        <label
-                            htmlFor={`reference-code-${index}`}
-                            className="block text-xs font-semibold text-sky-200 mb-2 uppercase tracking-wider"
-                        >
-                            Reference Solution Code (used for auto evaluation)
-                        </label>
-                        <textarea
-                            id={`reference-code-${index}`}
-                            placeholder="// Paste the canonical solution. The grading engine will not execute it; it grades against this reference."
-                            value={q.referenceCode || ""}
-                            onChange={(e) =>
-                                handleQuestionChange(index, "referenceCode", e.target.value)
-                            }
-                            className={inputClass + " resize-none font-mono text-sm"}
-                            rows={8}
-                            spellCheck={false}
-                        />
-                        <p className="text-xs text-sky-300/80 mt-2">
-                            Student code is not executed. The reference is used to score correctness, structure and clarity.
-                        </p>
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                            <div>
+                                <p className="text-xs font-semibold text-sky-200 uppercase tracking-wider">
+                                    Test Cases (used for auto evaluation)
+                                </p>
+                                <p className="text-xs text-sky-300/80 mt-1">
+                                    Student code will be run with each input and compared against the expected output.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => addTestCase(index)}
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/25 text-sky-100 rounded-lg text-xs font-semibold transition"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                Add Case
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {normalizeTestCases(q.testCases).map((testCase, testIndex) => (
+                                <div key={testIndex} className="rounded-lg border border-sky-500/15 bg-gray-950/30 p-3">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-sm font-semibold text-white">Case {testIndex + 1}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeTestCase(index, testIndex)}
+                                            className="text-red-300 hover:text-red-200 hover:bg-red-500/10 p-1.5 rounded-md transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                            disabled={normalizeTestCases(q.testCases).length === 1}
+                                            title="Remove test case"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label
+                                                htmlFor={`test-input-${index}-${testIndex}`}
+                                                className="block text-[10px] font-semibold text-gray-300 mb-1 uppercase tracking-wider"
+                                            >
+                                                Input
+                                            </label>
+                                            <textarea
+                                                id={`test-input-${index}-${testIndex}`}
+                                                placeholder="stdin for this case"
+                                                value={testCase.input}
+                                                onChange={(e) =>
+                                                    handleTestCaseChange(index, testIndex, "input", e.target.value)
+                                                }
+                                                className={inputClass + " resize-none font-mono text-sm"}
+                                                rows={4}
+                                                spellCheck={false}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label
+                                                htmlFor={`test-output-${index}-${testIndex}`}
+                                                className="block text-[10px] font-semibold text-gray-300 mb-1 uppercase tracking-wider"
+                                            >
+                                                Expected Output
+                                            </label>
+                                            <textarea
+                                                id={`test-output-${index}-${testIndex}`}
+                                                placeholder="expected stdout"
+                                                value={testCase.output}
+                                                onChange={(e) =>
+                                                    handleTestCaseChange(index, testIndex, "output", e.target.value)
+                                                }
+                                                className={inputClass + " resize-none font-mono text-sm"}
+                                                rows={4}
+                                                spellCheck={false}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 

@@ -1,5 +1,5 @@
 import { ExamSubmission } from "../../../models/examSubmission.model.js";
-import evaluateWithAi from "./ai.evaluation.js";
+import evaluateAnswer from "./controller/evaluation.controller.js";
 import { Exam } from "../../../models/exam.model.js";
 import clampMarks from "../helpers/clampMarks.js";
 import scoreMcqQuestion from "./mcq.evaluation.js";
@@ -51,9 +51,10 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
 
                 if (ans.questionType === "text" || ans.questionType === "code") {
                     const answered = ans.answerText && String(ans.answerText).trim().length > 0;
-                    const { status, marksObtained, feedback } = await evaluateWithAi({
+                    const { status, marksObtained, feedback } = await evaluateAnswer({
                         question: q,
                         answerText: ans.answerText,
+                        answerLanguage: ans.language,
                         kind: ans.questionType,
                     });
 
