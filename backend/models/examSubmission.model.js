@@ -38,6 +38,7 @@ const ExamSubmissionSchema = new mongoose.Schema({
             required: true,
         },
         answerText: String,
+        language: { type: String, default: null },
         marks: { type: Number },
         marksObtained: { type: Number, default: 0 },
         aiFeedback: { type: String, default: "" },

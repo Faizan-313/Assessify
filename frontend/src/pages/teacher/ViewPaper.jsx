@@ -403,6 +403,11 @@ function ViewPaper() {
                 <p className="text-xs font-semibold text-[#1b4242] dark:text-[#9ec8b9]">
                     STUDENT'S ANSWER
                 </p>
+                {question.type === "code" && studentAnswer?.language && (
+                    <div className="inline-flex w-fit items-center rounded-full border border-[#5c8374]/40 bg-white/70 dark:bg-gray-800 px-3 py-1 text-xs font-semibold text-[#1b4242] dark:text-[#9ec8b9]">
+                        Language: {studentAnswer.language}
+                    </div>
+                )}
                 <pre className="text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 p-3 rounded-lg text-sm dark:bg-gray-950 bg-white leading-relaxed whitespace-pre-wrap break-words font-mono overflow-auto max-h-96">
                     {sanitizeAndFormatAnswer(studentAnswer.answerText)}
                 </pre>

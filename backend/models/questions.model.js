@@ -16,7 +16,12 @@ const QuestionPaperSchema = new mongoose.Schema({
             evaluationConfig: {
                 correctOption: Number,
                 referenceAnswer: String,
-                referenceCode: String,
+                testCases: [
+                    {
+                        input: { type: String, default: "" },
+                        output: { type: String, default: "" },
+                    },
+                ],
             }
         },
     ],
