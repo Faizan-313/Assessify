@@ -176,7 +176,7 @@ Result is stored and shown in the Teacher Dashboard
 
 ### Evaluation Microservice Documentation
 For detailed implementation, API structure, and architecture of the local evaluation system, refer to:
-👉 https://github.com/Faizan-313/Assessify/blob/main/microservices/README.md
+https://github.com/Faizan-313/Assessify/blob/main/microservices/README.md
 
 ### Benefits of This Architecture
 Ensures consistent evaluation logic across environments

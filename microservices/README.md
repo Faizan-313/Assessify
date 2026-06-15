@@ -193,7 +193,7 @@ cd ../code-evaluation
 Run the container:
 
 ```bash
-docker run -p 7000:7000 code-runner
+docker run -p <port:port> code-runner
 ```
 
 ## Note
