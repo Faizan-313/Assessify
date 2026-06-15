@@ -25,11 +25,10 @@ function provideMarks(similarity, maxMarks) {
         return 0;
     }
     const clampedMarks = Math.max(0, Math.min(1, similarity));
-    if( clampedMarks <= 0.45 ){
+    if( clampedMarks <= 0.25 ){
         return 0;
-    }else if( clampedMarks >= 0.85 ){
-        return maxMarks;
     }
+
     return Math.round(clampedMarks * maxMarks);
 }
 
@@ -58,7 +57,7 @@ async function evaluateWithAi({ question, answerText, kind }) {
 
                 const response = await axios.post(`${url}/text-evaluate`, {
                     teacherAnswer,
-                    studentAnswer: String(answerText),
+                    studentAnswer: String(answerText), 
                 });
                 const marksObtained = provideMarks(response.data.similarity, maxMarks);
 
@@ -67,6 +66,11 @@ async function evaluateWithAi({ question, answerText, kind }) {
                     marksObtained: marksObtained,
                     feedback: response.data.feedback || "No feedback provided.",
                 };
+            }else if(kind === "code"){
+                //TODO
+                return { status: "error", marksObtained: 0 };
+            }else{
+                return { status: "error", marksObtained: 0 };
             }
         }else{
             // for production text grading and code grading, we use the Gemini model directly , as it is more reliable and is easy for production use.

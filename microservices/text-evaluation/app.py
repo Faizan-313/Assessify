@@ -44,6 +44,5 @@ def evaluate(data: EvaluationRequest):
 
     return {
         "similarity": round(similarity, 2),
-        "model": "all-MiniLM-L6-v2",
         "feedback": feedback
     }
