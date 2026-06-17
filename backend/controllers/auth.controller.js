@@ -32,26 +32,31 @@ const generateAccessAndRefreshToken = async (user) => {
 const login = async (req, res)=>{
     try {
         const { email, password } = req.body;
-        if([email,password].some((field)=> !field || field?.trim === "")){
+        if([email,password].some((field)=> !field || field?.trim() === "")){
             return res.status(400).json({ message: "All fields are required" })
         }
 
-        const user = await User.findOne({ email: email.toLowerCase() })
+        const user = await User.findOne({ email: email.toLowerCase() });
 
         if(!user){
+            const tempCheckPassword = await bcrypt.compare(password, "$2b$10$CwTycUXWue0Thq9StjUM0uJ8Q1P5h6k5e1Z5e1Z5e1Z5e1Z5e1Z5e");
             return res.status(400).json({ message: "User not found" })
         }
         
         const checkPassword = await user.isPasswordCorrect(password);
+
 
         if(!checkPassword){
             return res.status(400).json({  message: "Invalid email or password" })
         }
 
         const tokens = await generateAccessAndRefreshToken(user);
+
+
         if(tokens.error){
             return res.status(500).json({ message: "Something went wrong" })
         }
+
         const { accessToken, refreshToken } = tokens;
         const loggedInUser = {
             _id: user._id,
@@ -73,7 +78,7 @@ const login = async (req, res)=>{
 const register = async (req, res)=>{
     try {
         const { name, email, password } = req.body;
-        if([name, email, password].some((field)=> !field || field?.trim === "")){
+        if([name, email, password].some((field)=> !field || field?.trim() === "")){
             return res.status(400).json({ message: "All fields are required" })
         }
         if (password.length < 6) {
