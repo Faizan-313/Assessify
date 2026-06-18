@@ -13,6 +13,15 @@ export default function registerTeacherEvents(io, socket) {
                 return;
             }
 
+            console.log(
+                    "[EMIT]",
+                    action,
+                    "student:",
+                    studentId,
+                    "room:",
+                    `student_${studentId}`
+                );
+
             const status =
                 action === "pause"
                     ? "paused"
