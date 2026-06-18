@@ -22,14 +22,15 @@ export default function registerTeacherEvents(io, socket) {
                     ? "active"
                     : null;
 
+
             //Update student's violation status in DB
-            if (status) {
+            const updated = status && 
                 await Violation.findOneAndUpdate(
                     { examId, studentId },
                     { status },
                     { new: true, upsert: false }
                 );
-            }
+
 
             // Fetch the exam to get all enrolled students
             const exam = await Exam.findById(examId)

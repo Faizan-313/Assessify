@@ -8,6 +8,7 @@ import { useExam } from "../../context/ExamContextCore";
 
 export default function MonitorExam() {
     const { examId } = useParams();
+
     const [studentViolations, setStudentViolations] = useState({});
     const [examDetails, setExamDetails] = useState(null);
     const [socket, setSocket] = useState(null);
@@ -16,6 +17,7 @@ export default function MonitorExam() {
     const [isConnected, setIsConnected] = useState(false);
     const [showWindow, setShowWindow] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
+    
     const { fetchParticularExamDetails } = useExam();
     // const [students, setStudents] = useState(null);
     const [view, setView] = useState("active"); // 'active' | 'submitted'

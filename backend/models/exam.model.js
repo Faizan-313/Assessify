@@ -16,8 +16,7 @@ const ExamSchema = new mongoose.Schema({
     examCode: { 
         type: String, 
         unique: true, 
-        required: true, 
-        index: true 
+        required: true
     },
     startTime: { 
         type: Date, 
