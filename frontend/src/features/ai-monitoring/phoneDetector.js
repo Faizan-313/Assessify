@@ -1,5 +1,4 @@
 //Lightweight wrapper around @tensorflow-models/coco-ssd for detecting phones
-
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 import * as tf from "@tensorflow/tfjs";
 

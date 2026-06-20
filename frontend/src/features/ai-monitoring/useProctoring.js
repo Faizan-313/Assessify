@@ -198,8 +198,8 @@ export function useProctoring({
       let FaceMeshCtor;
       try {
         FaceMeshCtor = await loadFaceMesh();
-      } catch (err) {
-        console.error("[useProctoring] FaceMesh script failed to load:", err);
+      } catch {
+        // console.error("[useProctoring] FaceMesh script failed to load:", err);
         return;
       }
       if (cancelled) return;
@@ -215,7 +215,7 @@ export function useProctoring({
       faceMesh.onResults(handleResults);
       faceMeshRef.current = faceMesh;
 
-      //Phone detection (separate, slower loop)
+      // Phone detection (separate, slower loop)
       try {
         const model = await loadPhoneModel();
         if (cancelled) return;
@@ -227,8 +227,8 @@ export function useProctoring({
           const detected = await detectPhone(model, video);
           phoneActiveRef.current = detected;
         }, PHONE_DETECT_INTERVAL_MS);
-      } catch (err) {
-        console.error("[useProctoring] phone model failed to load:", err);
+      } catch {
+        // console.error("[useProctoring] phone model failed to load:", err);
         // Continue without phone detection rather than blocking the session.
         setPhase((p) => (p === "initializing" ? "calibrating" : p));
       }

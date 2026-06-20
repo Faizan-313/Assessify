@@ -116,7 +116,7 @@ function ExamSection() {
         if (submitAttemptedRef.current) return;
 
         if (!studentDetails?._id || !questionsRef.current?.length) {
-            console.warn("Ignored exam submit: session or questions not loaded yet");
+            // console.warn("Ignored exam submit: session or questions not loaded yet");
             if (userInitiated) {
                 toast.error("Exam is still loading. Please wait a moment.");
             }
