@@ -5,12 +5,16 @@ import bcrypt from "bcrypt"
 const TeacherSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
     email: { 
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        index: true,
+        lowercase: true,
+        trim: true,
     },
     password: {
         type: String,
@@ -40,7 +44,6 @@ TeacherSchema.pre("save", async function (next){
 // Add indexes for frequently queried fields
 TeacherSchema.index({ name: 1 });
 TeacherSchema.index({ createdAt: -1 });
-TeacherSchema.index({ email: 1 }, { unique: true });
 
 TeacherSchema.methods.isPasswordCorrect = async function (password){
     return await bcrypt.compare(password, this.password);

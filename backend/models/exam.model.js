@@ -16,7 +16,8 @@ const ExamSchema = new mongoose.Schema({
     examCode: { 
         type: String, 
         unique: true, 
-        required: true
+        required: true,
+        index: true
     },
     startTime: { 
         type: Date, 
@@ -64,6 +65,5 @@ const ExamSchema = new mongoose.Schema({
 ExamSchema.index({ createdBy: 1 });
 ExamSchema.index({ startTime: 1 });
 ExamSchema.index({ endTime: 1 });
-ExamSchema.index({ examCode: 1 }, { unique: true });
 
 export const Exam = mongoose.model("Exam", ExamSchema);
