@@ -70,23 +70,30 @@ export default function MonitorExam() {
             console.error("Socket connection error:", error);
         });
 
-        // Listen for violations history 
+        // Listen for violations history (merge — do not wipe socket-only joins)
         s.on("violations-history", (data) => {
-            if (data.violations && Array.isArray(data.violations)) {
-                const violationsMap = {};
+            if (!data.violations || !Array.isArray(data.violations)) return;
 
-                data.violations.forEach(doc => {
-                    violationsMap[doc.studentId] = {
+            setStudentViolations((prev) => {
+                const next = { ...prev };
+
+                data.violations.forEach((doc) => {
+                    const existing = prev[doc.studentId];
+                    next[doc.studentId] = {
                         studentId: doc.studentId,
-                        studentDetails: doc.studentDetails,
-                        violations: doc.violations || [],
+                        studentDetails: doc.studentDetails || existing?.studentDetails,
+                        violations: doc.violations ?? existing?.violations ?? [],
                         isPaused: doc.status === "paused",
                         isTerminated: doc.status === "terminated",
-                        isSubmitted: doc.status === "submitted"
+                        isSubmitted: doc.status === "submitted",
+                        joinedAt: existing?.joinedAt,
+                        timeLeft: existing?.timeLeft,
+                        lastHeartbeat: existing?.lastHeartbeat,
                     };
                 });
-                setStudentViolations(violationsMap);
-            }
+
+                return next;
+            });
         });
 
         // Listen for student join
@@ -143,8 +150,7 @@ export default function MonitorExam() {
             toast.error(`New violation from ${studentDetails?.name || "Student"}`);
         });
 
-        // Listen for teacher actions confirmation
-        s.on("teacher-action-applied", async (data) => {
+        s.on("teacher-action-applied", (data) => {
             const { studentId, action } = data;
 
             setStudentViolations((prev) => {
@@ -155,8 +161,8 @@ export default function MonitorExam() {
                     ...prev,
                     [studentId]: {
                         ...studentData,
-                        isPaused: action === "pause",
-                        isTerminated: action === "terminate"
+                        isPaused: action === "pause" ? true : action === "resume" ? false : studentData.isPaused,
+                        isTerminated: action === "terminate" ? true : studentData.isTerminated,
                     },
                 };
             });

@@ -32,13 +32,17 @@ export default function registerTeacherEvents(io, socket) {
                     : null;
 
 
-            //Update student's violation status in DB
-            const updated = status && 
+            // Persist pause / resume / terminate even when no violations exist yet
+            if (status) {
                 await Violation.findOneAndUpdate(
                     { examId, studentId },
-                    { status },
-                    { new: true, upsert: false }
+                    {
+                        $set: { status },
+                        $setOnInsert: { violations: [] },
+                    },
+                    { new: true, upsert: true }
                 );
+            }
 
 
             // Fetch the exam to get all enrolled students
