@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
 import { useParams } from "react-router-dom";
-import { AlertTriangle, Loader2, User, Clock, Shield, XCircle, ChevronDown, ChevronUp, Eye, Users, Smartphone, UserX } from "lucide-react";
+import { AlertTriangle, Loader2, User, Clock, Shield, XCircle, ChevronDown, ChevronUp, Eye, Users, Smartphone, UserX, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import ReasonWindow from "./components/PauseReasonWindow";
 import { useExam } from "../../context/ExamContextCore";
@@ -20,7 +20,8 @@ export default function MonitorExam() {
     
     const { fetchParticularExamDetails } = useExam();
     // const [students, setStudents] = useState(null);
-    const [view, setView] = useState("active"); // 'active' | 'submitted'
+    const [view, setView] = useState("active"); // 'active' | 'completed'
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Fetch exam details
     useEffect(() => {
@@ -79,13 +80,15 @@ export default function MonitorExam() {
 
                 data.violations.forEach((doc) => {
                     const existing = prev[doc.studentId];
+                    const isTerminated = doc.status === "terminated";
+                    const isSubmitted = doc.status === "submitted";
                     next[doc.studentId] = {
                         studentId: doc.studentId,
                         studentDetails: doc.studentDetails || existing?.studentDetails,
                         violations: doc.violations ?? existing?.violations ?? [],
                         isPaused: doc.status === "paused",
-                        isTerminated: doc.status === "terminated",
-                        isSubmitted: doc.status === "submitted",
+                        isTerminated,
+                        isSubmitted: isSubmitted && !isTerminated,
                         joinedAt: existing?.joinedAt,
                         timeLeft: existing?.timeLeft,
                         lastHeartbeat: existing?.lastHeartbeat,
@@ -163,6 +166,7 @@ export default function MonitorExam() {
                         ...studentData,
                         isPaused: action === "pause" ? true : action === "resume" ? false : studentData.isPaused,
                         isTerminated: action === "terminate" ? true : studentData.isTerminated,
+                        isSubmitted: action === "terminate" ? false : studentData.isSubmitted,
                     },
                 };
             });
@@ -183,7 +187,7 @@ export default function MonitorExam() {
                     ...prev,
                     [studentId]: {
                         ...studentData,
-                        isSubmitted: true,
+                        isSubmitted: studentData.isTerminated ? false : true,
                         isPaused: false,
                         submittedAt: data.submittedAt
                     },
@@ -250,8 +254,50 @@ export default function MonitorExam() {
     };
 
     const showActiveStudents = () => setView("active");
+    const showCompletedStudents = () => setView("completed");
 
-    const showSubmittedStudents = () => setView("submitted");
+    const allStudents = useMemo(
+        () => Object.values(studentViolations),
+        [studentViolations]
+    );
+
+    const activeCount = useMemo(
+        () => allStudents.filter((s) => !s.isSubmitted && !s.isTerminated).length,
+        [allStudents]
+    );
+
+    const submittedCount = useMemo(
+        () => allStudents.filter((s) => s.isSubmitted && !s.isTerminated).length,
+        [allStudents]
+    );
+
+    const terminatedCount = useMemo(
+        () => allStudents.filter((s) => s.isTerminated).length,
+        [allStudents]
+    );
+
+    const completedCount = submittedCount + terminatedCount;
+
+    const matchesSearch = (student) => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return true;
+        const d = student.studentDetails || {};
+        return (
+            String(d.name || "").toLowerCase().includes(q) ||
+            String(d.rollNumber || "").toLowerCase().includes(q) ||
+            String(d.collegeId || "").toLowerCase().includes(q)
+        );
+    };
+
+    const activeStudents = useMemo(
+        () => allStudents.filter((s) => !s.isSubmitted && !s.isTerminated).filter(matchesSearch),
+        [allStudents, searchQuery]
+    );
+
+    const completedStudents = useMemo(
+        () => allStudents.filter((s) => s.isSubmitted || s.isTerminated).filter(matchesSearch),
+        [allStudents, searchQuery]
+    );
 
 
     const handleTerminate = (student) => {
@@ -340,11 +386,11 @@ export default function MonitorExam() {
     };
 
     const getStatusBadge = (student) => {
-        if (student.isSubmitted) {
-            return <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-bold">SUBMITTED</span>;
-        }
         if (student.isTerminated) {
             return <span className="px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full text-xs font-bold">TERMINATED</span>;
+        }
+        if (student.isSubmitted) {
+            return <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-bold">SUBMITTED</span>;
         }
         if (student.isPaused) {
             return <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-xs font-bold">PAUSED</span>;
@@ -380,7 +426,7 @@ export default function MonitorExam() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6 w-full sm:w-auto">
                             <div>
                                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">Live Monitoring</h1>
-                                <p className="text-lg text-[#f4ffff] font-semibold mt-1">
+                                <p className="text-base text-gray-600 dark:text-gray-400 font-medium mt-1">
                                     {examDetails?.title || "Exam"}
                                 </p>
                             </div>
@@ -429,61 +475,85 @@ export default function MonitorExam() {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        <div>
-                            <div className="flex gap-3 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg w-fit">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2">
+                            <div className="flex flex-wrap gap-2 p-1 bg-gray-100 dark:bg-gray-900/60 rounded-xl border border-gray-200 dark:border-gray-700 w-fit">
                                 <button
                                     onClick={showActiveStudents}
-                                    className={`px-6 py-2.5 rounded-md font-semibold text-sm transition-all duration-200 relative cursor-pointer ${view === "active"
-                                            ? "bg-white dark:bg-gray-900  text-green-600 dark:text-green-400 shadow-md"
+                                    className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer ${view === "active"
+                                            ? "bg-white dark:bg-gray-800 text-[#1b4242] dark:text-[#9ec8b9] shadow-sm ring-1 ring-gray-200 dark:ring-gray-600"
                                             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                                         }`}
                                 >
                                     <span className="flex items-center gap-2">
-                                        <span className={`w-2 h-2 rounded-full ${view === "active" ? "bg-green-500 animate-pulse" : "bg-gray-400"}`}></span>
-                                        Active Students
-                                        <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${view === "active"
-                                                ? "bg-[#9ec8b9] dark:bg-[#092635]/40 text-[#092635] dark:text-[#9ec8b9]"
-                                                : "bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                                        <span className={`w-2 h-2 rounded-full ${view === "active" ? "bg-emerald-500 animate-pulse" : "bg-gray-400"}`} />
+                                        Active
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold tabular-nums ${view === "active"
+                                                ? "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300"
+                                                : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                                             }`}>
-                                            {Object.values(studentViolations).filter(s => !s.isSubmitted).length}
+                                            {activeCount}
                                         </span>
                                     </span>
                                 </button>
                                 <button
-                                    onClick={showSubmittedStudents}
-                                    className={`px-6 py-2.5 rounded-md font-semibold text-sm transition-all duration-200 cursor-pointer ${view === "submitted"
-                                            ? "bg-white dark:bg-gray-900 text-green-600 dark:text-green-400 shadow-md"
+                                    onClick={showCompletedStudents}
+                                    className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer ${view === "completed"
+                                            ? "bg-white dark:bg-gray-800 text-[#1b4242] dark:text-[#9ec8b9] shadow-sm ring-1 ring-gray-200 dark:ring-gray-600"
                                             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                                         }`}
                                 >
                                     <span className="flex items-center gap-2">
-                                        Submitted
-                                        <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${view === "submitted"
-                                                ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
-                                                : "bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                                        Completed
+                                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold tabular-nums ${view === "completed"
+                                                ? "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                                : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                                             }`}>
-                                            {Object.values(studentViolations).filter(s => s.isSubmitted).length}
+                                            {completedCount}
                                         </span>
                                     </span>
                                 </button>
                             </div>
-                            {(() => {
-                                const allStudents = Object.values(studentViolations);
-                                const submittedStudents = allStudents.filter(s => s.isSubmitted);
-                                const activeStudents = allStudents.filter(s => !s.isSubmitted);
 
-                                return (
-                                    <div className="space-y-6">
-                                        {view === "active" && (
-                                            <div>
-                                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Active Students ({activeStudents.length})</h2>
-                                                {activeStudents.length === 0 ? (
-                                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 text-center">
-                                                        <p className="text-gray-600 dark:text-gray-400">No active students</p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-3">
-                                                        {activeStudents.map((student) => (
+                            <div className="relative w-full lg:max-w-md">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <input
+                                    type="search"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search by name, roll number, or college ID…"
+                                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5c8374]/40 focus:border-[#5c8374] transition-shadow shadow-sm"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery("")}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                            Completed: {submittedCount} · Terminated: {terminatedCount}
+                        </p>
+
+                        <div className="space-y-6">
+                            {view === "active" && (
+                                <div>
+                                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                                        Active Students ({activeStudents.length}{searchQuery ? ` of ${activeCount}` : ""})
+                                    </h2>
+                                    {activeStudents.length === 0 ? (
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
+                                            <p className="text-gray-600 dark:text-gray-400">
+                                                {searchQuery ? "No active students match your search." : "No active students"}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {activeStudents.map((student) => (
                                                             // console.log(student),
                                                             <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
                                                                 <div className="p-4">
@@ -558,31 +628,36 @@ export default function MonitorExam() {
                                             </div>
                                         )}
 
-                                        {view === "submitted" && (
+                                        {view === "completed" && (
                                             <div>
-                                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Submitted Students ({submittedStudents.length})</h2>
-                                                {submittedStudents.length === 0 ? (
-                                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 text-center">
-                                                        <p className="text-gray-600 dark:text-gray-400">No submitted students yet</p>
+                                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                                                    Completed ({completedStudents.length}{searchQuery ? ` of ${completedCount}` : ""})
+                                                </h2>
+                                                {completedStudents.length === 0 ? (
+                                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
+                                                        <p className="text-gray-600 dark:text-gray-400">
+                                                            {searchQuery ? "No completed students match your search." : "No submitted or terminated students yet"}
+                                                        </p>
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-3">
-                                                        {submittedStudents.map((student) => (
+                                                        {completedStudents.map((student) => (
                                                             <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                                                <div className="p-4 flex items-center justify-between">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
-                                                                            <User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                                                                <div className="p-4 flex items-center justify-between gap-4">
+                                                                    <div className="flex items-center gap-3 min-w-0">
+                                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${student.isTerminated ? "bg-red-50 dark:bg-red-900/20" : "bg-emerald-50 dark:bg-emerald-900/20"}`}>
+                                                                            <User className={`w-5 h-5 ${student.isTerminated ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`} />
                                                                         </div>
-                                                                        <div>
+                                                                        <div className="min-w-0">
                                                                             <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{student.studentDetails?.name || "Unknown Student"}</h3>
-                                                                            <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                                                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
                                                                                 <span>{student.studentDetails?.rollNumber || "N/A"}</span>
                                                                                 <span>{student.studentDetails?.collegeId || "N/A"}</span>
+                                                                                <span>Batch {student.studentDetails?.batch || "N/A"}</span>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-4">
+                                                                    <div className="flex items-center gap-3 flex-shrink-0">
                                                                         {getStatusBadge(student)}
                                                                         <div className={`px-3 py-1 rounded-full ${student.violations.length > 5 ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : student.violations.length > 2 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" : student.violations.length > 0 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>
                                                                             <p className="text-xs font-medium">{student.violations.length}</p>
@@ -595,9 +670,6 @@ export default function MonitorExam() {
                                                 )}
                                             </div>
                                         )}
-                                    </div>
-                                );
-                            })()}
                         </div>
                     </div>
                 )}
