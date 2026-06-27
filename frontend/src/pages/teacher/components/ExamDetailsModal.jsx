@@ -1,223 +1,247 @@
 import {
-    Calendar, Clock, Award, X, Copy, Check,
+    Calendar, Clock, Award, X, Copy, Check, Info, FileText, 
+    Layers, BookOpen, CalendarDays, Terminal, CheckCircle2, 
+    AlertCircle, Image as ImageIcon
 } from "lucide-react";
 import getExamStatusHelper from "../utils/examStatusHelper.js";
-
 
 function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
     const status = getExamStatusHelper(exam.startTime, exam.endTime);
 
+    const formatDate = (dateString) => {
+        if (!dateString) return "N/A";
+        return new Date(dateString).toLocaleString("en-US", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    };
+
     return (
         <div
-            className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-80 animate-in fade-in duration-200"
             onClick={onClose}
         >
             <div
-                className="bg-slate-950 text-slate-100 rounded-3xl shadow-2xl ring-1 ring-white/10 max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-slate-900 text-slate-200 rounded-2xl shadow-2xl border border-slate-700/60 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="bg-slate-900/95 border-b border-slate-700 p-6 sticky top-0 backdrop-blur-sm">
+                <div className="bg-slate-950/50 border-b border-slate-800 p-6 flex-shrink-0">
                     <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.color}`}>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide ${status.color}`}>
                                     {status.label}
                                 </span>
-                                <button
-                                    onClick={onCopyCode}
-                                    className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700/90 border border-slate-700/70 px-3 py-1.5 rounded-lg transition-all text-sm"
-                                >
-                                    {copiedCode === exam.examCode ? (
-                                        <>
-                                            <Check size={14} />
-                                            Copied!
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Copy size={14} />
-                                            {exam.examCode}
-                                        </>
-                                    )}
-                                </button>
+                                {exam.evaluationStatus && exam.evaluationStatus !== "not_started" && (
+                                    <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full text-xs font-bold uppercase tracking-wide">
+                                        Eval: {exam.evaluationStatus.replace(/_/g, " ")}
+                                    </span>
+                                )}
                             </div>
-                            <h2 className="text-2xl font-semibold text-slate-100">{exam.title}</h2>
+                            <h2 className="text-2xl sm:text-3xl font-bold text-white truncate">
+                                {exam.title}
+                            </h2>
+                            <p className="text-slate-400 mt-2 text-sm max-w-2xl line-clamp-2">
+                                {exam.description || "No description provided for this exam."}
+                            </p>
                         </div>
                         <button
                             onClick={onClose}
-                            className="bg-slate-800/80 hover:bg-slate-700/90 p-2 rounded-lg transition-all flex-shrink-0"
+                            className="p-2 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex-shrink-0"
+                            aria-label="Close modal"
                         >
-                            <X size={20} />
+                            <X size={24} />
                         </button>
                     </div>
                 </div>
 
-                <div className="p-8 space-y-8">
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-3 tracking-wide">
-                            Description
-                        </h3>
-                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                            {exam.description || "No description provided"}
-                        </p>
+                <div className="overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                    
+                    {/* Quick Stats Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-1">
+                            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"><Clock size={14}/> Duration</span>
+                            <span className="text-xl font-bold text-white">{exam.duration} <span className="text-sm font-normal text-slate-500">mins</span></span>
+                        </div>
+                        <div className="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-1">
+                            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"><Award size={14}/> Total Marks</span>
+                            <span className="text-xl font-bold text-emerald-400">{exam.totalMarks}</span>
+                        </div>
+                        <div className="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-1">
+                            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"><Layers size={14}/> Questions</span>
+                            <span className="text-xl font-bold text-white">{exam.questions?.length || 0}</span>
+                        </div>
+                        <div className="bg-sky-500/10 border border-sky-500/20 p-4 rounded-xl flex flex-col gap-1 items-start justify-center">
+                            <span className="text-sky-400 text-xs font-semibold uppercase tracking-wider">Exam Code</span>
+                            <button
+                                onClick={onCopyCode}
+                                className="flex items-center gap-2 text-white font-mono font-bold text-lg hover:text-sky-300 transition-colors group"
+                            >
+                                {exam.examCode}
+                                {copiedCode === exam.examCode ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} className="text-sky-400/50 group-hover:text-sky-300" />}
+                            </button>
+                        </div>
                     </div>
 
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wide">
-                            Exam Details
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-slate-950/90 rounded-xl p-5 border border-slate-700">
-                                <div className="flex items-center gap-2 text-slate-300 mb-3">
-                                    <Clock size={18} />
-                                    <span className="text-sm font-semibold">Duration</span>
+                    {/* Meta & Schedule Section */}
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <Info size={16} /> Course Details
+                            </h3>
+                            <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5 space-y-3">
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
+                                    <span className="text-slate-400 text-sm flex items-center gap-2"><BookOpen size={14}/> Branch</span>
+                                    <span className="font-semibold text-white">{exam.branch || "N/A"}</span>
                                 </div>
-                                <p className="text-3xl font-semibold text-slate-100">
-                                    {exam.duration}
-                                    <span className="text-lg font-normal text-gray-600 dark:text-gray-400 ml-2">
-                                        minutes
-                                    </span>
-                                </p>
+                                <div className="flex justify-between items-center border-b border-slate-700/50 pb-3">
+                                    <span className="text-slate-400 text-sm flex items-center gap-2"><Layers size={14}/> Semester</span>
+                                    <span className="font-semibold text-white">{exam.semester || "N/A"}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-400 text-sm flex items-center gap-2"><CalendarDays size={14}/> Session</span>
+                                    <span className="font-semibold text-white">{exam.session || "N/A"}</span>
+                                </div>
                             </div>
+                        </div>
 
-                            <div className="bg-slate-950/90 rounded-xl p-5 border border-slate-700">
-                                <div className="flex items-center gap-2 text-slate-300 mb-3">
-                                    <Award size={18} />
-                                    <span className="text-sm font-semibold">Total Marks</span>
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <Calendar size={16} /> Schedule
+                            </h3>
+                            <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-5 space-y-3">
+                                <div className="flex flex-col gap-1 border-b border-slate-700/50 pb-3">
+                                    <span className="text-emerald-400 text-xs font-semibold uppercase">Starts</span>
+                                    <span className="font-medium text-white">{formatDate(exam.startTime)}</span>
                                 </div>
-                                <p className="text-3xl font-semibold text-slate-100">
-                                    {exam.totalMarks}
-                                    <span className="text-lg font-normal text-gray-600 dark:text-gray-400 ml-2">
-                                        marks
-                                    </span>
-                                </p>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-rose-400 text-xs font-semibold uppercase">Ends</span>
+                                    <span className="font-medium text-white">{formatDate(exam.endTime)}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wide">
-                            Questions ({exam.questions?.length || 0})
-                        </h3>
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {/* Question Paper Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <FileText size={20} className="text-indigo-400" /> 
+                                Question Paper
+                            </h3>
+                            <span className="text-sm text-slate-400">{exam.questions?.length || 0} Total</span>
+                        </div>
+
+                        <div className="space-y-4">
                             {exam.questions && exam.questions.length > 0 ? (
                                 exam.questions.map((q, idx) => (
-                                    <div
-                                        key={q._id || idx}
-                                        className="bg-slate-950/90 p-4 rounded-lg border border-slate-700 hover:border-slate-500 transition"
-                                    >
-                                        <div className="flex items-start justify-between gap-3 mb-2">
-                                            <p className="font-semibold text-slate-100">
-                                                Q{idx + 1}. <span className="text-slate-300">{q.questionText}</span>
-                                            </p>
-                                            <span className="px-2.5 py-1 bg-slate-800 text-slate-300 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0">
-                                                {q.marks} marks
-                                            </span>
+                                    <div key={q._id || idx} className="bg-slate-800/20 border border-slate-700/50 rounded-xl overflow-hidden">
+                                        {/* Question Header */}
+                                        <div className="bg-slate-800/40 p-4 border-b border-slate-700/50 flex items-start gap-4">
+                                            <div className="flex-shrink-0 flex flex-col items-center gap-2">
+                                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-700 text-white font-bold text-sm">
+                                                    {idx + 1}
+                                                </span>
+                                                <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded uppercase">
+                                                    {q.type}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 pt-1 text-slate-200 font-medium leading-relaxed">
+                                                {q.questionText}
+                                            </div>
+                                            <div className="flex-shrink-0">
+                                                <span className="px-3 py-1 bg-slate-700/50 text-slate-300 text-xs font-bold rounded-lg whitespace-nowrap">
+                                                    {q.marks} {q.marks === 1 ? 'Mark' : 'Marks'}
+                                                </span>
+                                            </div>
                                         </div>
-                                        {q.image && <img className="h-[50%] w-[50%]" rel="question image" aria-label="question image" src={q.image}></img>}
 
-                                        {q.type === "mcq" && q.options && (
-                                            <ul className="list-disc list-inside ml-4 mt-2 space-y-1 text-slate-300 text-sm">
-                                                {q.options.map((opt, i) => (
-                                                    <li key={i}>{opt}</li>
-                                                ))}
-                                            </ul>
-                                        )}
+                                        {/* Question Body (Images, Options) */}
+                                        <div className="p-5 space-y-4">
+                                            {q.image && (
+                                                <div className="border border-slate-700 rounded-lg p-2 bg-slate-900/50 w-fit">
+                                                    <img src={q.image} alt="Question figure" className="max-w-full h-auto max-h-64 rounded object-contain" />
+                                                </div>
+                                            )}
 
-                                        <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded">
-                                                {q.type.toUpperCase()}
-                                            </span>
+                                            {/* MCQ Options Rendering */}
+                                            {q.type === "mcq" && q.options && (
+                                                <div className="space-y-2 mt-2">
+                                                    {q.options.map((opt, i) => {
+                                                        const isCorrect = q.evaluationConfig?.correctOption === i;
+                                                        return (
+                                                            <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-900/50 border-slate-700/50'}`}>
+                                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${isCorrect ? 'border-emerald-500 text-emerald-500' : 'border-slate-500 text-transparent'}`}>
+                                                                    {isCorrect && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
+                                                                </div>
+                                                                <span className={isCorrect ? 'text-emerald-100 font-medium' : 'text-slate-300'}>{opt}</span>
+                                                                {isCorrect && <CheckCircle2 size={16} className="text-emerald-500 ml-auto" />}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+
+                                            {/* Text/Diagram Reference Answer */}
+                                            {(q.type === "text" || q.type === "diagram") && q.evaluationConfig?.referenceAnswer && (
+                                                <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-4">
+                                                    <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                        <CheckCircle2 size={14} /> Reference Answer / Rubric
+                                                    </h4>
+                                                    <p className="text-sm text-indigo-100/70 whitespace-pre-wrap">
+                                                        {q.evaluationConfig.referenceAnswer}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            {/* Code Test Cases */}
+                                            {q.type === "code" && q.evaluationConfig?.testCases?.length > 0 && (
+                                                <div className="space-y-2">
+                                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                                        <Terminal size={14} /> Evaluation Test Cases
+                                                    </h4>
+                                                    <div className="grid sm:grid-cols-2 gap-3">
+                                                        {q.evaluationConfig.testCases.map((tc, i) => (
+                                                            <div key={i} className="bg-slate-950 border border-slate-700 rounded-lg overflow-hidden flex flex-col">
+                                                                <div className="bg-slate-800/50 px-3 py-1.5 border-b border-slate-700 text-xs font-bold text-slate-400">
+                                                                    Case {i + 1}
+                                                                </div>
+                                                                <div className="p-3 text-xs font-mono space-y-2">
+                                                                    <div>
+                                                                        <span className="text-sky-400 block mb-1">Input:</span>
+                                                                        <div className="bg-slate-900 p-2 rounded text-slate-300 overflow-x-auto">{tc.input || "No Input"}</div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <span className="text-emerald-400 block mb-1">Expected Output:</span>
+                                                                        <div className="bg-slate-900 p-2 rounded text-slate-300 overflow-x-auto">{tc.output}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Fallback if no evaluation config is set */}
+                                            {q.type !== "mcq" && !q.evaluationConfig?.referenceAnswer && (!q.evaluationConfig?.testCases || q.evaluationConfig?.testCases?.length === 0) && (
+                                                <div className="flex items-center gap-2 text-amber-400/80 text-sm bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
+                                                    <AlertCircle size={16} />
+                                                    No evaluation rubric or test cases provided for this question.
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                                    No questions added yet
-                                </p>
+                                <div className="text-center py-12 bg-slate-800/20 border border-slate-700/50 rounded-xl border-dashed">
+                                    <FileText size={48} className="mx-auto text-slate-600 mb-4" />
+                                    <p className="text-slate-400 font-medium">No questions have been added to this paper yet.</p>
+                                </div>
                             )}
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-4 tracking-wide">
-                            Schedule
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-5 border border-gray-200 dark:border-gray-600">
-                                <Calendar className="text-[#5c8374] dark:text-[#9ec8b9] mt-1 flex-shrink-0" size={20} />
-                                <div>
-                                    <p className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Start Time</p>
-                                    <p className="text-gray-600 dark:text-gray-400">
-                                        {new Date(exam.startTime).toLocaleString("en-US", {
-                                            weekday: "long",
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                            hour: "2-digit",
-                                            minute: "2-digit"
-                                        })}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-start gap-4 bg-slate-950/90 rounded-lg p-5 border border-slate-700">
-                                <Calendar className="text-slate-400 mt-1 flex-shrink-0" size={20} />
-                                <div>
-                                    <p className="font-semibold text-slate-100 mb-2">End Time</p>
-                                    <p className="text-slate-300">
-                                        {new Date(exam.endTime).toLocaleString("en-US", {
-                                            weekday: "long",
-                                            year: "numeric",
-                                            month: "long",
-                                            day: "numeric",
-                                            hour: "2-digit",
-                                            minute: "2-digit"
-                                        })}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-3 tracking-wide">
-                            Additional Information
-                        </h3>
-                        <div className="bg-slate-950/90 rounded-lg p-5 border border-slate-700/90 space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-slate-300">Created On</span>
-                                <span className="font-medium text-slate-100">
-                                    {new Date(exam.createdAt).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric"
-                                    })}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">Branch</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
-                                    {exam.branch || "N/A"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">Semester</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
-                                    {exam.semester || "N/A"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">Session</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
-                                    {exam.session || "N/A"}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">Exam Code</span>
-                                <span className="font-mono font-medium text-gray-900 dark:text-gray-100">
-                                    {exam.examCode}
-                                </span>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -225,6 +249,5 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
         </div>
     );
 }
-
 
 export default ExamDetailsModal;

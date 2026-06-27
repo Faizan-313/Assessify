@@ -56,6 +56,10 @@ const ExamSchema = new mongoose.Schema({
         ],
         default: "not_started"
     },
+    autoEvalProgress: {
+        completed: { type: Number, default: 0 },
+        total: { type: Number, default: 0 }
+    },
     createdAt: { 
         type: Date, 
         default: Date.now 

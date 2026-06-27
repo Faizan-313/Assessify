@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    Search, ClipboardCheck, AlertCircle, Loader2, ChevronLeft, ChevronRight, Sparkles, Clock, Lock, ShieldCheck, AlertTriangle,
-    Link
+    Search, ClipboardCheck, AlertCircle, Loader2, ChevronLeft, ChevronRight, Sparkles, Clock, Lock, ShieldCheck, AlertTriangle
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -11,19 +10,20 @@ import { useTeacher } from "../../context/TeacherContextCore";
 import { useExam } from "../../context/ExamContextCore";
 
 import StudentRow, { StudentTableHeader } from "./components/StudentRow";
-import { isSubmissionGraded } from "../../utils/submissionEvaluateStatus";
 
-const STATUS_POLL_INTERVAL_MS = 5000;
+const STATUS_POLL_INTERVAL_MS = 3000; // Sped up to 3s for smoother progress bar updates
 
 function AppearedStudentList() {
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [evaluationStatus, setEvaluationStatus] = useState(null);
+    const [evalProgress, setEvalProgress] = useState({ completed: 0, total: 0 });
     const [statusReady, setStatusReady] = useState(false);
     const [startingEvaluation, setStartingEvaluation] = useState(false);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [completing, setCompleting] = useState(false);
     const pollTimerRef = useRef(null);
+    
     const { examId } = useParams();
     const navigate = useNavigate();
     const { fetchStudents, students, studentsLoading, studentsError, studentsPagination } = useTeacher();
@@ -35,20 +35,21 @@ function AppearedStudentList() {
     const isCompleted = evaluationStatus === "completed";
     const evaluating = inProgress || startingEvaluation;
     
-    // The auto-eval button is locked only while an auto evaluation run is actually happening, or after the exam has been finalized.
     const canStart = statusReady && !inProgress && !startingEvaluation && !isCompleted;
 
     const fetchEvaluationStatus = useCallback(async () => {
         if (!examId) return null;
         try {
-            const res = await apiCall(
-                `/api/v1/${examId}/auto-evaluation/status`,
-                "GET"
-            );
-            const next = res?.data?.evaluationStatus ?? null;
-            setEvaluationStatus(next);
+            const res = await apiCall(`/api/v1/${examId}/auto-evaluation/status`, "GET");
+            const nextStatus = res?.data?.evaluationStatus ?? null;
+            
+            // Extract the progress object 
+            const progress = res?.data?.autoEvalProgress ?? { completed: 0, total: 0 };
+            
+            setEvaluationStatus(nextStatus);
+            setEvalProgress(progress);
             setStatusReady(true);
-            return next;
+            return nextStatus;
         } catch (err) {
             console.warn("Could not fetch auto evaluation status:", err);
             setStatusReady(true);
@@ -77,7 +78,6 @@ function AppearedStudentList() {
             if (next && next !== "in_progress") {
                 clearInterval(pollTimerRef.current);
                 pollTimerRef.current = null;
-                // Add a small delay to ensure database writes are fully committed
                 await new Promise(resolve => setTimeout(resolve, 500));
                 await fetchStudents(examId, currentPage);
                 if (next === "auto_evaluated") {
@@ -109,32 +109,22 @@ function AppearedStudentList() {
         )
         : [];
 
-    const pendingCount = useMemo(() => {
-        if (!Array.isArray(students)) return 0;
-        return students.filter(
-            (s) => !isSubmissionGraded(s?.examsAttempted?.[0]?.evaluateStatus)
-        ).length;
-    }, [students]);
-
     const handlePreviousPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
+        if (currentPage > 1) setCurrentPage(currentPage - 1);
     };
 
     const handleNextPage = () => {
-        if (currentPage < studentsPagination.pages) {
-            setCurrentPage(currentPage + 1);
-        }
+        if (currentPage < studentsPagination.pages) setCurrentPage(currentPage + 1);
     };
 
     const handleAutoEvaluation = async () => {
-        if (!canStart || pendingCount === 0) return;
+        if (!canStart) return;
+        
         const confirmed = await new Promise((resolve) => {
             const id = toast(() => (
                 <div className="max-w-md">
-                    <div className="font-medium">Auto Evaluate {pendingCount} pending paper{pendingCount > 1 ? "s" : ""} for "{exam.title || "this exam"}"?</div>
-                    <div className="text-sm mt-1">This may take several hours. Manual evaluation will be locked until it finishes.</div>
+                    <div className="font-medium">Start Auto Evaluation?</div>
+                    <div className="text-sm mt-1">This will scan and grade all pending papers. Manual evaluation will be locked until it finishes.</div>
                     <div className="flex gap-2 mt-3">
                         <button
                             className="px-3 py-1 cursor-pointer hover:bg-emerald-700 rounded bg-emerald-600 text-white text-sm"
@@ -148,22 +138,19 @@ function AppearedStudentList() {
                 </div>
             ));
         });
+        
         if (!confirmed) return;
 
         try {
             setStartingEvaluation(true);
-            const res = await apiCall(
-                `/api/v1/${examId}/auto-evaluation/start`,
-                "POST"
-            );
+            const res = await apiCall(`/api/v1/${examId}/auto-evaluation/start`, "POST");
             if (res.status === 202 || res.status === 200) {
                 setEvaluationStatus(res.data?.evaluationStatus || "in_progress");
                 toast.success("Auto evaluation started");
             }
         } catch (error) {
             console.error("Failed to start auto evaluation:", error);
-            const message =
-                error?.response?.data?.message || "Could not start auto evaluation";
+            const message = error?.response?.data?.message || "Could not start auto evaluation";
             if (error?.response?.data?.evaluationStatus) {
                 setEvaluationStatus(error.response.data.evaluationStatus);
             }
@@ -173,18 +160,13 @@ function AppearedStudentList() {
         }
     };
 
-    const canComplete =
-        statusReady && !inProgress && !isCompleted && !completing && pendingCount === 0;
+    const canComplete = statusReady && !inProgress && !isCompleted && !completing;
 
     const handleCompleteEvaluation = async () => {
         if (!canComplete) return;
         try {
             setCompleting(true);
-            const res = await apiCall(
-                `/api/v1/teacher/exam/complete`,
-                "POST",
-                { data: { examId } }
-            );
+            const res = await apiCall(`/api/v1/teacher/exam/complete`, "POST", { data: { examId } });
             if (res.status === 200) {
                 setEvaluationStatus(res.data?.evaluationStatus || "completed");
                 setShowCompleteModal(false);
@@ -193,11 +175,7 @@ function AppearedStudentList() {
             }
         } catch (error) {
             console.error("Failed to finalize evaluation:", error);
-            const message =
-                error?.response?.data?.message || "Could not finalize evaluation";
-            if (error?.response?.data?.evaluationStatus) {
-                setEvaluationStatus(error.response.data.evaluationStatus);
-            }
+            const message = error?.response?.data?.message || "Could not finalize evaluation";
             toast.error(message);
         } finally {
             setCompleting(false);
@@ -213,15 +191,15 @@ function AppearedStudentList() {
         );
     }
 
+    // Calculate progress percentage safely
+    const progressPercent = evalProgress?.total > 0 
+        ? Math.round((evalProgress.completed / evalProgress.total) * 100) 
+        : 0;
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] via-[#e8f5f3] to-[#dff1ee] dark:from-[#092635] dark:via-[#1b4242] dark:to-[#0d3a47] py-8 px-4 sm:px-6 lg:px-8">
             {inProgress && (
-                <div
-                    role="alertdialog"
-                    aria-modal="true"
-                    aria-live="assertive"
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm px-4"
-                >
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm px-4">
                     <div className="max-w-md w-full rounded-2xl border border-indigo-500/30 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
                         <div className="h-1 w-full bg-gradient-to-r from-indigo-500 via-emerald-500 to-indigo-500 animate-pulse" />
                         <div className="p-6 space-y-4">
@@ -238,19 +216,30 @@ function AppearedStudentList() {
                                     </p>
                                 </div>
                             </div>
+                            
+                            {evalProgress?.total > 0 && (
+                                <div className="py-2">
+                                    <div className="flex justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                        <span>Evaluating papers...</span>
+                                        <span>{progressPercent}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                        <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${progressPercent}%` }}></div>
+                                    </div>
+                                    <p className="text-center text-xs mt-2 text-gray-500 dark:text-gray-400">
+                                        {evalProgress.completed} of {evalProgress.total} students evaluated
+                                    </p>
+                                </div>
+                            )}
+
                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                                The AI is grading every text and code answer for this exam.
-                                Manual evaluation is locked until the job finishes — please keep
-                                this page open or come back later.
+                                Manual evaluation is locked until the job finishes — please keep this page open or come back later.
                             </p>
                             <div className="flex items-center justify-between gap-4">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                                     <Lock className="w-3.5 h-3.5" />
-                                    Editing is blocked while this is running.
+                                    Editing blocked during run.
                                 </p>
-                                <a href="/dashboard" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline whitespace-nowrap">
-                                    Go to Dashboard
-                                </a>
                             </div>
                         </div>
                     </div>
@@ -282,34 +271,20 @@ function AppearedStudentList() {
                                     placeholder="Search by name or roll number..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl 
-                                        bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 
-                                        placeholder-gray-500 dark:placeholder-gray-400
-                                        shadow-sm hover:shadow-md
-                                        focus:ring-2 focus:ring-[#5c8374] focus:border-[#5c8374] dark:focus:ring-[#9ec8b9]
-                                        outline-none transition-all duration-200"
+                                    className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 shadow-sm focus:ring-2 focus:ring-[#5c8374] outline-none transition-all duration-200"
                                 />
                             </div>
 
                             <button
                                 onClick={handleAutoEvaluation}
-                                disabled={!canStart || pendingCount === 0}
+                                disabled={!canStart}
                                 title={
-                                    !statusReady
-                                        ? "Checking auto evaluation status..."
-                                        : isCompleted
-                                            ? "Evaluation is finalized"
-                                            : inProgress
-                                                ? "Auto evaluation is already in progress"
-                                                : pendingCount === 0
-                                                    ? "No pending papers to auto-evaluate"
-                                                    : `Auto-evaluate all ${pendingCount} pending paper${pendingCount > 1 ? "s" : ""} for this exam`
+                                    !statusReady ? "Checking auto evaluation status..."
+                                    : isCompleted ? "Evaluation is finalized"
+                                    : inProgress ? "Auto evaluation is already in progress"
+                                    : "Auto-evaluate all pending papers"
                                 }
-                                className="relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-white whitespace-nowrap
-                                    bg-gradient-to-r from-indigo-600 to-emerald-700 hover:from-indigo-700 hover:to-emerald-600
-                                    focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900
-                                    shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer
-                                    disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-md"
+                                className="relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-white whitespace-nowrap bg-gradient-to-r from-indigo-600 to-emerald-700 hover:from-indigo-700 hover:to-emerald-600 focus:ring-2 focus:ring-indigo-400 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {!statusReady ? (
                                     <>
@@ -324,16 +299,7 @@ function AppearedStudentList() {
                                 ) : (
                                     <>
                                         <Sparkles className="w-5 h-5" />
-                                        <span>
-                                            {evaluationStatus === "failed"
-                                                ? "Retry Auto Evaluate"
-                                                : "Auto Evaluate"}
-                                        </span>
-                                        {pendingCount > 0 && (
-                                            <span className="ml-1 inline-flex items-center justify-center min-w-[1.5rem] h-6 px-1.5 text-xs font-bold rounded-full bg-white/20 backdrop-blur-sm">
-                                                {pendingCount}
-                                            </span>
-                                        )}
+                                        <span>{evaluationStatus === "failed" ? "Retry Auto Evaluate" : "Auto Evaluate Papers"}</span>
                                     </>
                                 )}
                             </button>
@@ -341,22 +307,7 @@ function AppearedStudentList() {
                             <button
                                 onClick={() => canComplete && setShowCompleteModal(true)}
                                 disabled={!canComplete}
-                                title={
-                                    !statusReady
-                                        ? "Checking evaluation status..."
-                                        : isCompleted
-                                            ? "Evaluation is already finalized"
-                                            : inProgress
-                                                ? "Auto evaluation is running"
-                                                : pendingCount > 0
-                                                    ? `${pendingCount} student${pendingCount > 1 ? "s are" : " is"} still pending`
-                                                    : "Finalize evaluation. Results will be locked."
-                                }
-                                className="relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-white whitespace-nowrap
-                                    bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-600
-                                    focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900
-                                    shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer
-                                    disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:shadow-md"
+                                className="relative inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-white whitespace-nowrap bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-600 shadow-md transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                                 {isCompleted ? (
                                     <>
@@ -380,22 +331,15 @@ function AppearedStudentList() {
                 </div>
 
                 {isCompleted && (
-                    <div
-                        role="status"
-                        className="mb-6 overflow-hidden rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-gray-800 dark:to-teal-950/40 shadow-md"
-                    >
+                    <div className="mb-6 overflow-hidden rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 via-white to-teal-50 dark:from-emerald-950/40 dark:via-gray-800 dark:to-teal-950/40 shadow-md">
                         <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-500" />
                         <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                             <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center shadow-md">
                                 <Lock className="w-6 h-6 text-white" />
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
-                                    Evaluation Finalized
-                                </h3>
-                                <p className="text-sm text-gray-600 dark:text-gray-300">
-                                    Results for this exam are locked. Marks can no longer be edited.
-                                </p>
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">Evaluation Finalized</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">Results for this exam are locked. Marks can no longer be edited.</p>
                             </div>
                         </div>
                     </div>
@@ -412,36 +356,20 @@ function AppearedStudentList() {
                         <div className="p-6">
                             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div className="space-y-1">
-                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                        Exam Title
-                                    </p>
-                                    <p className="text-base font-semibold text-gray-900 dark:text-white">
-                                        {exam.title || "N/A"}
-                                    </p>
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Exam Title</p>
+                                    <p className="text-base font-semibold text-gray-900 dark:text-white">{exam.title || "N/A"}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                        Exam Code
-                                    </p>
-                                    <p className="text-base font-mono font-medium text-gray-900 dark:text-white">
-                                        {exam.examCode || "N/A"}
-                                    </p>
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Exam Code</p>
+                                    <p className="text-base font-mono font-medium text-gray-900 dark:text-white">{exam.examCode || "N/A"}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                        Duration
-                                    </p>
-                                    <p className="text-base font-semibold text-gray-900 dark:text-white">
-                                        {exam.duration ? `${exam.duration} minutes` : "N/A"}
-                                    </p>
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Duration</p>
+                                    <p className="text-base font-semibold text-gray-900 dark:text-white">{exam.duration ? `${exam.duration} minutes` : "N/A"}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                        Total Marks
-                                    </p>
-                                    <p className="text-2xl font-bold text-[#5c8374] dark:text-[#9ec8b9]">
-                                        {exam.totalMarks || "N/A"}
-                                    </p>
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Marks</p>
+                                    <p className="text-2xl font-bold text-[#5c8374] dark:text-[#9ec8b9]">{exam.totalMarks || "N/A"}</p>
                                 </div>
                             </div>
                         </div>
@@ -449,20 +377,13 @@ function AppearedStudentList() {
                 </div>
 
                 {studentsError && (
-                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-400 rounded-lg shadow-md">
+                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg shadow-md">
                         <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                                <p className="font-semibold text-red-800 dark:text-red-300 mb-1">
-                                    Error Loading Students
-                                </p>
+                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+                            <div>
+                                <p className="font-semibold text-red-800 dark:text-red-300 mb-1">Error Loading Students</p>
                                 <p className="text-sm text-red-700 dark:text-red-400">{studentsError}</p>
-                                <button
-                                    onClick={() => fetchStudents(examId, currentPage)}
-                                    className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                                >
-                                    Try Again
-                                </button>
+                                <button onClick={() => fetchStudents(examId, currentPage)} className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">Try Again</button>
                             </div>
                         </div>
                     </div>
@@ -470,27 +391,18 @@ function AppearedStudentList() {
 
                 {filteredStudents.length === 0 && !studentsError && (
                     <div className="bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-12 text-center">
-                        <div className="flex flex-col items-center">
-                            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
-                                <ClipboardCheck className="w-8 h-8 text-gray-400 dark:text-gray-500" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                                {students.length === 0 ? "No Students Enrolled" : "No Results Found"}
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-400 mb-4">
-                                {students.length === 0 
-                                    ? "There are no students enrolled for this exam yet." 
-                                    : `No students match your search "${search}"`}
-                            </p>
-                            {search && (
-                                <button
-                                    onClick={() => setSearch("")}
-                                    className="px-6 py-2.5 bg-[#5c8374] hover:bg-[#1b4242] dark:bg-[#9ec8b9] dark:hover:bg-[#5c8374] text-white font-medium rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-                                >
-                                    Clear Search
-                                </button>
-                            )}
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <ClipboardCheck className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                         </div>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                            {students.length === 0 ? "No Students Enrolled" : "No Results Found"}
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">
+                            {students.length === 0 ? "There are no students enrolled for this exam yet." : `No students match your search "${search}"`}
+                        </p>
+                        {search && (
+                            <button onClick={() => setSearch("")} className="px-6 py-2.5 bg-[#5c8374] hover:bg-[#1b4242] text-white font-medium rounded-lg shadow-md">Clear Search</button>
+                        )}
                     </div>
                 )}
 
@@ -513,49 +425,30 @@ function AppearedStudentList() {
                             </table>
                         </div>
                         
-                        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    Showing <span className="font-semibold text-gray-900 dark:text-white">{filteredStudents.length}</span> of{" "}
-                                    <span className="font-semibold text-gray-900 dark:text-white">{studentsPagination.total}</span> students
-                                </p>
-                                
-                                {studentsPagination.pages > 1 && (
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={handlePreviousPage}
-                                            disabled={currentPage === 1}
-                                            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                        </button>
-                                        
-                                        <span className="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white">
-                                            Page {studentsPagination.currentPage} of {studentsPagination.pages}
-                                        </span>
-                                        
-                                        <button
-                                            onClick={handleNextPage}
-                                            disabled={currentPage >= studentsPagination.pages}
-                                            className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                        <div className="px-6 py-4 text-white bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Showing <span className="font-semibold text-gray-900 dark:text-white">{filteredStudents.length}</span> of{" "}
+                                <span className="font-semibold text-gray-900 dark:text-white">{studentsPagination.total}</span> students
+                            </p>
+                            
+                            {studentsPagination.pages > 1 && (
+                                <div className="flex items-center gap-2">
+                                    <button onClick={handlePreviousPage} disabled={currentPage === 1} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors">
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <span className="px-4 py-2 text-sm font-medium">Page {studentsPagination.currentPage} of {studentsPagination.pages}</span>
+                                    <button onClick={handleNextPage} disabled={currentPage >= studentsPagination.pages} className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors">
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
             </div>
 
             {showCompleteModal && (
-                <div
-                    role="alertdialog"
-                    aria-modal="true"
-                    aria-labelledby="complete-eval-title"
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm p-4"
-                >
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/70 backdrop-blur-sm p-4">
                     <div className="max-w-md w-full rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
                         <div className="h-1 w-full bg-gradient-to-r from-emerald-500 to-teal-500" />
                         <div className="p-6 space-y-5">
@@ -564,50 +457,18 @@ function AppearedStudentList() {
                                     <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                                 </div>
                                 <div>
-                                    <h2 id="complete-eval-title" className="text-lg font-bold text-gray-900 dark:text-white">
-                                        Finalize Evaluation?
-                                    </h2>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {exam.title || "this exam"}
-                                    </p>
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">Finalize Evaluation?</h2>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{exam.title || "this exam"}</p>
                                 </div>
                             </div>
-
                             <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-                                <p>
-                                    Once finalized, the results for this exam will be{" "}
-                                    <span className="font-semibold text-gray-900 dark:text-white">locked</span>.
-                                    Neither auto evaluation nor manual marks can be changed afterwards.
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    All {students.length} student paper{students.length === 1 ? "" : "s"} have been evaluated and are ready to be finalized.
-                                </p>
+                                <p>Once finalized, the results for this exam will be <span className="font-semibold">locked</span>. Neither auto evaluation nor manual marks can be changed afterwards.</p>
                             </div>
-
                             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
-                                <button
-                                    onClick={() => setShowCompleteModal(false)}
-                                    disabled={completing}
-                                    className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleCompleteEvaluation}
-                                    disabled={completing}
-                                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-600 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    {completing ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                            Finalizing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <ShieldCheck className="w-4 h-4" />
-                                            Yes, finalize
-                                        </>
-                                    )}
+                                <button onClick={() => setShowCompleteModal(false)} disabled={completing} className="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-white  font-semibold bg-white dark:bg-gray-800 disabled:opacity-50">Cancel</button>
+                                <button onClick={handleCompleteEvaluation} disabled={completing} className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 shadow-md disabled:opacity-60">
+                                    {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                                    {completing ? "Finalizing..." : "Yes, finalize"}
                                 </button>
                             </div>
                         </div>

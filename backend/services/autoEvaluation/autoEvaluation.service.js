@@ -63,7 +63,10 @@ async function getAutoEvaluationStatus(examId, userId) {
         throw error;
     }
 
-    const exam = await Exam.findById(examId).select("createdBy evaluationStatus").lean();
+    const exam = await Exam.findById(examId)
+        .select("createdBy evaluationStatus autoEvalProgress")
+        .lean();
+        
     if (!exam) {
         const error = new Error("Exam not found");
         error.statusCode = 404;
@@ -78,6 +81,7 @@ async function getAutoEvaluationStatus(examId, userId) {
 
     return {
         evaluationStatus: exam.evaluationStatus,
+        autoEvalProgress: exam.autoEvalProgress || { completed: 0, total: 0 }
     };
 }
 

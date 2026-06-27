@@ -17,13 +17,12 @@ export default function MonitorExam() {
     const [isConnected, setIsConnected] = useState(false);
     const [showWindow, setShowWindow] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const [studentToTerminate, setStudentToTerminate] = useState(null);
     
     const { fetchParticularExamDetails } = useExam();
-    // const [students, setStudents] = useState(null);
-    const [view, setView] = useState("active"); // 'active' | 'completed'
+    const [view, setView] = useState("active");
     const [searchQuery, setSearchQuery] = useState("");
 
-    // Fetch exam details
     useEffect(() => {
         const fetchExamDetails = async () => {
             if (!examId) return;
@@ -42,7 +41,6 @@ export default function MonitorExam() {
         fetchExamDetails();
     }, [examId]);
 
-    // Socket connection
     useEffect(() => {
         const s = io(import.meta.env.VITE_API_URL, {
             transports: ["websocket"],
@@ -54,16 +52,14 @@ export default function MonitorExam() {
 
         s.on("connect", () => {
             setIsConnected(true);
-            toast.success("Monitoring started!");
+            toast.success("Monitoring started!", { id: "sys-connect" });
             s.emit("joinRoom", { room: `exam_${examId}` });
-
-            // Request existing violations history
             s.emit("fetch-violations", { examId });
         });
 
         s.on("disconnect", () => {
             setIsConnected(false);
-            toast.error("Connection lost");
+            toast.error("Connection lost", { id: "sys-disconnect" });
         });
 
         s.on("connect_error", (error) => {
@@ -71,7 +67,6 @@ export default function MonitorExam() {
             console.error("Socket connection error:", error);
         });
 
-        // Listen for violations history (merge — do not wipe socket-only joins)
         s.on("violations-history", (data) => {
             if (!data.violations || !Array.isArray(data.violations)) return;
 
@@ -99,12 +94,10 @@ export default function MonitorExam() {
             });
         });
 
-        // Listen for student join
         s.on("student-joined", (data) => {
             const { studentId, studentDetails } = data;
 
             setStudentViolations((prev) => {
-                // Don't overwrite if student already exists
                 if (prev[studentId]) {
                     return prev;
                 }
@@ -123,10 +116,9 @@ export default function MonitorExam() {
                 };
             });
 
-            toast.success(`${studentDetails?.name || 'Student'} joined the exam`);
+            toast.success(`${studentDetails?.name || 'Student'} joined`, { id: "student-join" });
         });
 
-        // Listen for new violations
         s.on("new-violation", (data) => {
             const { studentId, violation, studentDetails } = data;
 
@@ -150,7 +142,7 @@ export default function MonitorExam() {
                 };
             });
 
-            toast.error(`New violation from ${studentDetails?.name || "Student"}`);
+            toast.error(`Violation: ${studentDetails?.name || "Student"}`, { id: "new-violation" });
         });
 
         s.on("teacher-action-applied", (data) => {
@@ -172,10 +164,9 @@ export default function MonitorExam() {
             });
 
             const actionText = action === "resume" ? "resumed" : action === "pause" ? "paused" : "terminated";
-            toast.success(`Student exam ${actionText}`);
+            toast.success(`Exam ${actionText}`, { id: "teacher-action" });
         });
 
-        // Listen for student submission
         s.on("student-submitted", (data) => {
             const { studentId } = data;
 
@@ -194,10 +185,9 @@ export default function MonitorExam() {
                 };
             });
 
-            toast.success("Student submitted exam");
+            toast.success("A student submitted the exam", { id: "student-submit" });
         });
 
-        // Listen for student heartbeats
         s.on("student-heartbeat", (data) => {
             const { studentId, timeLeft } = data;
 
@@ -221,7 +211,6 @@ export default function MonitorExam() {
         };
     }, [examId]);
 
-    // Actions
     const handleAction = (studentId, action, reason = null) => {
         if (!socket || !socket.connected) {
             toast.error("Not connected to server");
@@ -244,6 +233,17 @@ export default function MonitorExam() {
 
     const handleCancel = () => {
         setShowWindow(false);
+    };
+
+    const initiateTerminate = (student) => {
+        setStudentToTerminate(student);
+    };
+
+    const confirmTerminate = () => {
+        if (studentToTerminate) {
+            handleAction(studentToTerminate.studentId, "terminate");
+            setStudentToTerminate(null);
+        }
     };
 
     const toggleExpand = (studentId) => {
@@ -298,39 +298,6 @@ export default function MonitorExam() {
         () => allStudents.filter((s) => s.isSubmitted || s.isTerminated).filter(matchesSearch),
         [allStudents, searchQuery]
     );
-
-
-    const handleTerminate = (student) => {
-        toast.custom((t) => (
-            <div className={`bg-white dark:bg-gray-900 p-4 rounded-lg shadow-lg border text-sm flex flex-col gap-3 w-72`}>
-                <p className="text-gray-800 dark:text-gray-200">
-                    Are you sure you want to <span className="font-semibold text-red-600">terminate</span> {student.studentDetails?.name}'s exam?
-                    This action can not be undone. <span className="font-bold">The student data will not be stored.</span>
-                </p>
-                <div className="flex justify-end gap-2">
-                    <button
-                        onClick={() => {
-                            toast.dismiss(t.id)
-                            toast.success(`${student.studentDetails?.name}'s exam not terminated.`);
-                        }}
-                        className="px-3 cursor-pointer py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md text-xs font-medium hover:bg-gray-300"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={() => {
-                            handleAction(student.studentId, "terminate");
-                            toast.dismiss(t.id);
-                            toast.success(`${student.studentDetails?.name}'s exam terminated.`);
-                        }}
-                        className="px-3 cursor-pointer py-1 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-medium"
-                    >
-                        Confirm
-                    </button>
-                </div>
-            </div>
-        ));
-    };
 
     const getViolationIcon = (type) => {
         switch (type) {
@@ -395,7 +362,16 @@ export default function MonitorExam() {
         if (student.isPaused) {
             return <span className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded-full text-xs font-bold">PAUSED</span>;
         }
-        return <span className="px-3 py-1 bg-[#00cf87]  text-[#000000]  rounded-full text-xs font-bold animate-pulse">ACTIVE</span>; 
+        return <span className="px-3 py-1 bg-[#00cf87] text-[#000000] rounded-full text-xs font-bold animate-pulse">ACTIVE</span>; 
+    };
+
+    const copyToClipboard = async (code) => {
+        try {
+            await navigator.clipboard.writeText(code);
+            toast.success("Exam code copied!");
+        } catch {
+            toast.error("Failed to copy code");
+        }
     };
 
     if (loading) {
@@ -408,15 +384,6 @@ export default function MonitorExam() {
             </div>
         );
     }
-
-    const copyToClipboard = async (code) => {
-        try {
-            await navigator.clipboard.writeText(code);
-            toast.success("Exam code copied!");
-        } catch {
-            toast.error("Failed to copy code");
-        }
-    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] to-[#e0f2f0] dark:from-[#092635] dark:to-[#1b4242] p-6 pt-20">
@@ -466,7 +433,6 @@ export default function MonitorExam() {
                     </div>
                 </div>
 
-                {/* Students List */}
                 {Object.keys(studentViolations).length === 0 ? (
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center">
                         <Loader2 className="animate-spin w-12 h-12 mx-auto mb-4 text-[#5c8374]" />
@@ -554,126 +520,159 @@ export default function MonitorExam() {
                                     ) : (
                                         <div className="space-y-3">
                                             {activeStudents.map((student) => (
-                                                            // console.log(student),
-                                                            <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                                                <div className="p-4">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div className="flex items-center gap-3 flex-1">
-                                                                            <div className="w-10 h-10 rounded-full bg-[#f0f8f7] dark:bg-[#5c8374]/30 flex items-center justify-center flex-shrink-0">
-                                                                                <User className="w-5 h-5 text-[#5c8374] dark:text-[#9ec8b9]" />
-                                                                            </div>
-                                                                            <div className="flex-1 min-w-0">
-                                                                                <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{student.studentDetails?.name || "Unknown Student"}</h3>
-                                                                                <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
-                                                                                    <span>{student.studentDetails?.rollNumber || "N/A"}</span>
-                                                                                    <span>{student.studentDetails?.collegeId || "N/A"}</span>
-                                                                                    <span>{examDetails?.session || "N/A"}</span>
-                                                                                    <span>{student.studentDetails?.batch || "N/A"}</span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div className="flex items-center gap-2">
-                                                                            {getStatusBadge(student)}
-                                                                            <div className={`px-3 py-1 rounded-full ${student.violations.length > 5 ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : student.violations.length > 2 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" : student.violations.length > 0 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>
-                                                                                <p className="text-xs font-medium">{student.violations.length}</p>
-                                                                            </div>
-
-                                                                            {!student.isTerminated && (
-                                                                                <>
-                                                                                    <ReasonWindow visible={showWindow} onSubmit={handleSubmitReason} onCancel={handleCancel} />
-                                                                                    {!student.isPaused ? (
-                                                                                        <button onClick={() => handlePause(student.studentId)} className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-xs font-medium transition-colors" title="Pause exam">Pause</button>
-                                                                                    ) : (
-                                                                                        <button onClick={() => handleAction(student.studentId, "resume")} className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-xs font-medium transition-colors" title="Resume exam">Resume</button>
-                                                                                    )}
-                                                                                    <button onClick={() => handleTerminate(student)} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-medium transition-colors" title="Terminate exam">Terminate</button>
-                                                                                </>
-                                                                            )}
-
-                                                                            {student.violations.length > 0 && (
-                                                                                <button onClick={() => toggleExpand(student.studentId)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors" title={expandedStudents[student.studentId] ? "Hide violations" : "Show violations"}>
-                                                                                    {expandedStudents[student.studentId] ? <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />}
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
+                                                <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                                    <div className="p-4">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3 flex-1">
+                                                                <div className="w-10 h-10 rounded-full bg-[#f0f8f7] dark:bg-[#5c8374]/30 flex items-center justify-center flex-shrink-0">
+                                                                    <User className="w-5 h-5 text-[#5c8374] dark:text-[#9ec8b9]" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{student.studentDetails?.name || "Unknown Student"}</h3>
+                                                                    <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                                                                        <span>{student.studentDetails?.rollNumber || "N/A"}</span>
+                                                                        <span>{student.studentDetails?.collegeId || "N/A"}</span>
+                                                                        <span>{examDetails?.session || "N/A"}</span>
+                                                                        <span>{student.studentDetails?.batch || "N/A"}</span>
                                                                     </div>
                                                                 </div>
+                                                            </div>
 
-                                                                {expandedStudents[student.studentId] && student.violations.length > 0 && (
-                                                                    <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-3 max-h-60 overflow-y-auto">
-                                                                        <div className="space-y-2">
-                                                                            {student.violations.map((violation, idx) => (
-                                                                                <div key={`${student.studentId}-${idx}`} className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 text-xs">
-                                                                                    <div className="flex items-center gap-2 flex-1">
-                                                                                        <div className={getViolationColor(violation.type)}>{getViolationIcon(violation.type)}</div>
-                                                                                        <div className="flex-1 min-w-0">
-                                                                                            <p className="font-semibold text-gray-900 dark:text-white truncate">{violation.type.replace(/_/g, " ")}</p>
-                                                                                            <p className="text-gray-600 dark:text-gray-400 truncate">{violation.message}</p>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
-                                                                                        <Clock className="w-3 h-3" />
-                                                                                        <span>{new Date(violation.timestamp).toLocaleTimeString()}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {getStatusBadge(student)}
+                                                                <div className={`px-3 py-1 rounded-full ${student.violations.length > 5 ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : student.violations.length > 2 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" : student.violations.length > 0 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>
+                                                                    <p className="text-xs font-medium">{student.violations.length}</p>
+                                                                </div>
+
+                                                                {!student.isTerminated && (
+                                                                    <>
+                                                                        {!student.isPaused ? (
+                                                                            <button onClick={() => handlePause(student.studentId)} className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-md text-xs font-medium transition-colors" title="Pause exam">Pause</button>
+                                                                        ) : (
+                                                                            <button onClick={() => handleAction(student.studentId, "resume")} className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-xs font-medium transition-colors" title="Resume exam">Resume</button>
+                                                                        )}
+                                                                        <button onClick={() => initiateTerminate(student)} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-md text-xs font-medium transition-colors" title="Terminate exam">Terminate</button>
+                                                                    </>
+                                                                )}
+
+                                                                {student.violations.length > 0 && (
+                                                                    <button onClick={() => toggleExpand(student.studentId)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors" title={expandedStudents[student.studentId] ? "Hide violations" : "Show violations"}>
+                                                                        {expandedStudents[student.studentId] ? <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-400" />}
+                                                                    </button>
                                                                 )}
                                                             </div>
-                                                        ))}
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        )}
 
-                                        {view === "completed" && (
-                                            <div>
-                                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
-                                                    Completed ({completedStudents.length}{searchQuery ? ` of ${completedCount}` : ""})
-                                                </h2>
-                                                {completedStudents.length === 0 ? (
-                                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
-                                                        <p className="text-gray-600 dark:text-gray-400">
-                                                            {searchQuery ? "No completed students match your search." : "No submitted or terminated students yet"}
-                                                        </p>
-                                                    </div>
-                                                ) : (
-                                                    <div className="space-y-3">
-                                                        {completedStudents.map((student) => (
-                                                            <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                                                <div className="p-4 flex items-center justify-between gap-4">
-                                                                    <div className="flex items-center gap-3 min-w-0">
-                                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${student.isTerminated ? "bg-red-50 dark:bg-red-900/20" : "bg-emerald-50 dark:bg-emerald-900/20"}`}>
-                                                                            <User className={`w-5 h-5 ${student.isTerminated ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`} />
-                                                                        </div>
-                                                                        <div className="min-w-0">
-                                                                            <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{student.studentDetails?.name || "Unknown Student"}</h3>
-                                                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
-                                                                                <span>{student.studentDetails?.rollNumber || "N/A"}</span>
-                                                                                <span>{student.studentDetails?.collegeId || "N/A"}</span>
-                                                                                <span>Batch {student.studentDetails?.batch || "N/A"}</span>
+                                                    {expandedStudents[student.studentId] && student.violations.length > 0 && (
+                                                        <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-3 max-h-60 overflow-y-auto">
+                                                            <div className="space-y-2">
+                                                                {student.violations.map((violation, idx) => (
+                                                                    <div key={`${student.studentId}-${idx}`} className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-2 text-xs">
+                                                                        <div className="flex items-center gap-2 flex-1">
+                                                                            <div className={getViolationColor(violation.type)}>{getViolationIcon(violation.type)}</div>
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <p className="font-semibold text-gray-900 dark:text-white truncate">{violation.type.replace(/_/g, " ")}</p>
+                                                                                <p className="text-gray-600 dark:text-gray-400 truncate">{violation.message}</p>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-3 flex-shrink-0">
-                                                                        {getStatusBadge(student)}
-                                                                        <div className={`px-3 py-1 rounded-full ${student.violations.length > 5 ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : student.violations.length > 2 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" : student.violations.length > 0 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>
-                                                                            <p className="text-xs font-medium">{student.violations.length}</p>
+                                                                        <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
+                                                                            <Clock className="w-3 h-3" />
+                                                                            <span>{new Date(violation.timestamp).toLocaleTimeString()}</span>
                                                                         </div>
                                                                     </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {view === "completed" && (
+                                <div>
+                                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                                        Completed ({completedStudents.length}{searchQuery ? ` of ${completedCount}` : ""})
+                                    </h2>
+                                    {completedStudents.length === 0 ? (
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
+                                            <p className="text-gray-600 dark:text-gray-400">
+                                                {searchQuery ? "No completed students match your search." : "No submitted or terminated students yet"}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {completedStudents.map((student) => (
+                                                <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                                    <div className="p-4 flex items-center justify-between gap-4">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${student.isTerminated ? "bg-red-50 dark:bg-red-900/20" : "bg-emerald-50 dark:bg-emerald-900/20"}`}>
+                                                                <User className={`w-5 h-5 ${student.isTerminated ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">{student.studentDetails?.name || "Unknown Student"}</h3>
+                                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400">
+                                                                    <span>{student.studentDetails?.rollNumber || "N/A"}</span>
+                                                                    <span>{student.studentDetails?.collegeId || "N/A"}</span>
+                                                                    <span>Batch {student.studentDetails?.batch || "N/A"}</span>
                                                                 </div>
                                                             </div>
-                                                        ))}
+                                                        </div>
+                                                        <div className="flex items-center gap-3 flex-shrink-0">
+                                                            {getStatusBadge(student)}
+                                                            <div className={`px-3 py-1 rounded-full ${student.violations.length > 5 ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : student.violations.length > 2 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" : student.violations.length > 0 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>
+                                                                <p className="text-xs font-medium">{student.violations.length}</p>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                )}
-                                            </div>
-                                        )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
             </div>
+
+            <ReasonWindow 
+                visible={showWindow} 
+                onSubmit={handleSubmitReason} 
+                onCancel={handleCancel} 
+            />
+
+            {studentToTerminate && (
+                <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-md w-full border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3 mb-4 text-red-600 dark:text-red-400">
+                            <AlertTriangle className="w-8 h-8" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Confirm Termination</h3>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm">
+                            Are you sure you want to terminate <span className="font-semibold text-red-600 dark:text-red-400">{studentToTerminate.studentDetails?.name}'s</span> exam? This action cannot be undone and their data will not be stored.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button 
+                                onClick={() => setStudentToTerminate(null)} 
+                                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-semibold transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={confirmTerminate} 
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                            >
+                                Confirm Terminate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+

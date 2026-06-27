@@ -13,15 +13,29 @@ function mcqHasAnswerKey(question) {
 
 async function runAutoEvaluationJob({ examId, questionPaper }) {
     try {
-        const submissions = await ExamSubmission.find({ examId }).lean();
+        //Only grab submissions that ACTUALLY need evaluation
+        const submissions = await ExamSubmission.find({ 
+            examId, 
+            evaluateStatus: "Pending" 
+        }).lean();
 
-        if (submissions.length === 0) {
+        const totalSubmissions = submissions.length;
+
+        if (totalSubmissions === 0) {
             await Exam.findByIdAndUpdate(examId, { $set: { evaluationStatus: "auto_evaluated" } });
             return;
         }
 
+        //Initialize progress tracking in the database
+        await Exam.findByIdAndUpdate(examId, { 
+            $set: { 
+                evaluationStatus: "in_progress",
+                autoEvalProgress: { completed: 0, total: totalSubmissions }
+            } 
+        });
+
         const questionById = new Map(questionPaper?.questions?.map((q) => [String(q._id), q]));
-        const bulkOps = [];
+        let completedCount = 0;
 
         for (const sub of submissions) {
             let totalScore = 0;
@@ -83,22 +97,25 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
             }
 
             const evaluateStatus = needsManualReview ? "Pending" : "AutoEvaluated";
-            bulkOps.push({
-                updateOne: {
-                    filter: { _id: sub._id },
-                    update: {
-                        $set: {
-                            answers: updatedAnswers,
-                            totalScore,
-                            evaluateStatus,
-                        },
+            
+            //Save THIS student immediately so data isn't lost if the server crashes
+            await ExamSubmission.updateOne(
+                { _id: sub._id },
+                {
+                    $set: {
+                        answers: updatedAnswers,
+                        totalScore,
+                        evaluateStatus,
                     },
-                },
-            });
-        }
+                }
+            );
 
-        if (bulkOps.length > 0) {
-            await ExamSubmission.bulkWrite(bulkOps, { ordered: false });
+            completedCount++;
+
+            //Update the real-time progress tracker on the Exam
+            await Exam.findByIdAndUpdate(examId, { 
+                $set: { "autoEvalProgress.completed": completedCount } 
+            });
         }
 
         await Exam.findByIdAndUpdate(examId, { $set: { evaluationStatus: "auto_evaluated" } });
