@@ -9,7 +9,7 @@ import { python } from "@codemirror/lang-python";
 import { java } from "@codemirror/lang-java";
 import { cpp } from "@codemirror/lang-cpp";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { Clock, FileText, Code, User, AlertTriangle, Shield, Loader2, Calendar, Users } from "lucide-react";
+import { Clock, FileText, Code, User, AlertTriangle, Shield, Loader2, Calendar, Users, CheckCircle } from "lucide-react";
 import DiagramCanvas from "./components/DiagramCanvas";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +32,9 @@ function ExamSection() {
     const [pauseReason, setPauseReason] = useState(null);
     const [needsFullscreen, setNeedsFullscreen] = useState(false);
     const [timerReady, setTimerReady] = useState(false);
+    
+    // NEW STATE: Control for the submission confirmation dialog
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const submitAttemptedRef = useRef(false);
     const timerRef = useRef(null);
@@ -138,6 +141,7 @@ function ExamSection() {
         // Synchronous commit so useLayoutEffect runs now and removes proctoring listeners before any further events.
         flushSync(() => {
             setIsSubmitted(true);
+            setShowConfirmModal(false);
         });
 
         try {
@@ -179,6 +183,11 @@ function ExamSection() {
                     socketRef.current.disconnect();
                     socketRef.current = null;
                 }
+                
+                //exit full screen after the exam is submitted
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                }
 
                 toast.success("Exam submitted successfully!");
                 sessionStorage.removeItem("studentExamSession");
@@ -192,15 +201,22 @@ function ExamSection() {
                 throw new Error("Failed to submit exam");
             }
 
-        } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to submit exam");
-            proctoringSuppressedUntilRef.current = 0;
-            submitAttemptedRef.current = false;
-            isSubmittedRef.current = false;
-            flushSync(() => {
-                setIsSubmitted(false);
-            });
-        }
+            } catch (error) {
+                const status = error.response?.status;
+                const isRetryable = !status || status >= 500; // network error or server error
+
+                toast.error(error.response?.data?.message || "Failed to submit exam");
+
+                if (isRetryable) {
+                    // Only reset for transient errors — allows retry on next user action
+                    proctoringSuppressedUntilRef.current = 0;
+                    submitAttemptedRef.current = false;
+                    isSubmittedRef.current = false;
+                    flushSync(() => {
+                        setIsSubmitted(false);
+                    });
+                }
+            }
     }, [exam, studentDetails, navigate, stopProctoring]);
 
     // Safety net: if the exam page unmounts for any reason, release camera and detectors.
@@ -258,7 +274,7 @@ function ExamSection() {
         setTimerReady(true);
     }, [exam]);
 
-    // Timer countdown — do not depend on timeLeft (re-running every second restarted the interval)
+    // Timer countdown 
     useEffect(() => {
         if (!timerReady || isSubmitted || submitAttemptedRef.current || !exam) {
             return;
@@ -268,8 +284,6 @@ function ExamSection() {
             setTimeLeft((prev) => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current);
-                    toast.error("Time's up! Submitting exam automatically...");
-                    handleSubmitRef.current();
                     return 0;
                 }
                 return prev - 1;
@@ -278,6 +292,15 @@ function ExamSection() {
 
         return () => clearInterval(timerRef.current);
     }, [timerReady, isSubmitted, exam]);
+
+    // Auto-submit when time runs out 
+    useEffect(() => {
+        if (timeLeft === 0 && timerReady && !isSubmitted && !submitAttemptedRef.current) {
+            toast.error("Time's up! Submitting exam automatically...");
+            handleSubmitRef.current(false);
+        }
+    }, [timeLeft, timerReady, isSubmitted]);
+
 
     // Record when the student actually entered the exam section
     useEffect(() => {
@@ -324,7 +347,7 @@ function ExamSection() {
         socket.on("exam-action", (data) => {
             if (data.action === "terminate") {
                 toast.error("Your exam was terminated by the teacher!");
-                handleSubmitRef.current();
+                handleSubmitRef.current(false);
             } else if (data.action === "pause") {
                 setNeedsFullscreen(false);
                 setExamPaused(true);
@@ -368,6 +391,9 @@ function ExamSection() {
         if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const handleVisibilityChange = () => {
+            // Guard to prevent hallucinations during automatic submit sequence
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
+            
             if (document.hidden) {
                 recordProctoringSignal(
                     {
@@ -389,6 +415,9 @@ function ExamSection() {
         if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const handleBlur = () => {
+            // Guard to prevent hallucinations during automatic submit sequence
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
+
             recordProctoringSignal(
                 {
                     type: "WINDOW_BLUR",
@@ -409,11 +438,9 @@ function ExamSection() {
 
         const handleBeforeUnload = (e) => {
             if (isSubmittedRef.current || submitAttemptedRef.current) return;
-            if (!isSubmittedRef.current && !submitAttemptedRef.current) {
-                e.preventDefault();
-                e.returnValue = "Your exam is in progress. Are you sure you want to leave?";
-                return e.returnValue;
-            }
+            e.preventDefault();
+            e.returnValue = "Your exam is in progress. Are you sure you want to leave?";
+            return e.returnValue;
         };
 
         window.addEventListener("beforeunload", handleBeforeUnload);
@@ -425,6 +452,8 @@ function ExamSection() {
         if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const detectDevTools = () => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
+
             const threshold = 160;
             const widthThreshold = window.outerWidth - window.innerWidth > threshold;
             const heightThreshold = window.outerHeight - window.innerHeight > threshold;
@@ -456,6 +485,7 @@ function ExamSection() {
         };
 
         const handleContextMenu = (e) => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
             e.preventDefault();
             recordProctoringSignal(
                 {
@@ -468,6 +498,7 @@ function ExamSection() {
         };
 
         const handleKeyDown = (e) => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
             if (
                 e.keyCode === 123 ||
                 (e.ctrlKey && e.shiftKey && e.keyCode === 73) ||
@@ -511,6 +542,7 @@ function ExamSection() {
         };
 
         const blockClipboardEvent = (label) => (e) => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
             e.preventDefault();
             e.stopPropagation();
             notify(`${label} is disabled during the exam`);
@@ -527,6 +559,7 @@ function ExamSection() {
         };
 
         const handleKeyDown = (e) => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
             const key = (e.key || "").toLowerCase();
 
             if (
@@ -550,6 +583,7 @@ function ExamSection() {
         };
 
         const handleKeyUp = (e) => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
             if (e.key === "PrintScreen" || e.keyCode === 44) {
                 wipeClipboard();
                 notify("Screenshots are disabled during the exam");
@@ -571,7 +605,7 @@ function ExamSection() {
         };
     }, [isSubmitted, examPaused]);
 
-    // Security: Fullscreen enforcement 
+    // Security: Fullscreen enforcement
     const enterFullscreen = useCallback(async () => {
         if (document.fullscreenElement) {
             setNeedsFullscreen(false);
@@ -600,7 +634,6 @@ function ExamSection() {
     useLayoutEffect(() => {
         if (isSubmitted || submitAttemptedRef.current) return;
 
-        // Only attempt to enter / enforce fullscreen when the exam is active
         if (!examPaused) {
             if (!document.fullscreenElement) {
                 enterFullscreen();
@@ -610,8 +643,9 @@ function ExamSection() {
         }
 
         const handleFullscreenChange = () => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
+
             if (!document.fullscreenElement) {
-                // Don't record a violation or show the gate while the exam is paused
                 if (!examPaused) {
                     recordProctoringSignal(
                         {
@@ -632,17 +666,24 @@ function ExamSection() {
 
         return () => {
             document.removeEventListener("fullscreenchange", handleFullscreenChange);
-            if (document.fullscreenElement) {
-                document.exitFullscreen().catch(err => console.error(err));
-            }
         };
     }, [isSubmitted, examPaused, recordProctoringSignal, enterFullscreen]);
+
+    // Safety net: exit fullscreen on unmount (covers edge cases like navigation without submit)
+    useEffect(() => {
+        return () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        };
+    }, []);
 
     // Security: AI monitoring 
     useLayoutEffect(() => {
         if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const handleAnomaly = (anomaly) => {
+            if (submitAttemptedRef.current || isSubmittedRef.current) return;
             const type = `AI_${String(anomaly.key || "UNKNOWN").toUpperCase()}`;
             recordProctoringSignal(
                 {
@@ -724,6 +765,41 @@ function ExamSection() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] via-[#e8f5f3] to-[#dff1ee] dark:from-[#092635] dark:via-[#1b4242] dark:to-[#0d3a47] py-8 px-4 sm:px-6 lg:px-8">
+
+            {/* Custom Confirm Submission Modal */}
+            {showConfirmModal && !isSubmitted && !examPaused && (
+                <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                                <CheckCircle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Submit Exam?</h3>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                            Are you sure you want to submit your exam? You will not be able to change your answers after submitting.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowConfirmModal(false)}
+                                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onPointerDown={() => {
+                                    // Suppress blur violations momentarily so clicking this doesn't fire alerts
+                                    proctoringSuppressedUntilRef.current = Date.now() + 1500;
+                                }}
+                                onClick={() => handleSubmit(true)}
+                                className="px-4 py-2 bg-gradient-to-r from-[#5c8374] to-[#1b4242] text-white font-semibold rounded-xl hover:shadow-lg transition"
+                            >
+                                Yes, Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/*Fullscreen gate */}
             {needsFullscreen && !isSubmitted && !examPaused && (
@@ -1038,10 +1114,7 @@ function ExamSection() {
                         <div className="flex justify-center pt-6">
                             <button
                                 type="button"
-                                onPointerDown={() => {
-                                    proctoringSuppressedUntilRef.current = Date.now() + 1500;
-                                }}
-                                onClick={handleSubmit}
+                                onClick={() => setShowConfirmModal(true)}
                                 disabled={isSubmitted}
                                 className="group relative px-8 py-4 bg-gradient-to-r from-[#5c8374] to-[#1b4242] hover:from-[#1b4242] hover:to-[#092635] disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold text-lg flex items-center gap-3"
                             >

@@ -271,8 +271,8 @@ const submitExam = async (req, res) => {
             return res.status(404).json({ message: "Exam does not exist" });
         }
 
-        // check exam timing
-        if (exam.endTime && Date.now() > new Date(exam.endTime)) {
+        // generous grace period for network latency + auto-submit edge cases (2 min after exam ends)
+        if (exam.endTime && Date.now() > new Date(exam.endTime).getTime() + 120000) {
             return res.status(400).json({ message: "Exam has already ended" });
         }
 

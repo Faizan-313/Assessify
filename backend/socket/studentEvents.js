@@ -52,11 +52,11 @@ export default function registerStudentEvents(io, socket) {
 
             const studentDetails = rawStudentDetails
                 ? {
-                      name: rawStudentDetails.name,
-                      rollNumber: rawStudentDetails.rollNumber,
-                      collegeId: rawStudentDetails.collegeId,
-                      batch: rawStudentDetails.batch,
-                  }
+                    name: rawStudentDetails.name,
+                    rollNumber: rawStudentDetails.rollNumber,
+                    collegeId: rawStudentDetails.collegeId,
+                    batch: rawStudentDetails.batch,
+                }
                 : undefined;
 
             const clientSaysSubmitted = payload.isSubmitted === true;
