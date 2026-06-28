@@ -17,12 +17,12 @@ export const TeacherProvider = ({ children }) => {
     const [examsLoading, setExamsLoading] = useState(false);
     const [examsError, setExamsError] = useState(null);
 
-    const fetchStudents = useCallback(async (examId, page = 1, limit = 20) => {
+    const fetchStudents = useCallback(async (examId, page = 1, limit = 30, searchQuery) => {
         try {
             setStudentsLoading(true);
             setStudentsError(null);
             const response = await apiCall(`/api/v1/teacher/exam/students`, "GET", {
-                params: { examId, page, limit },
+                params: { examId, page, limit, searchQuery },
             });
 
             if (response.status === 200) {

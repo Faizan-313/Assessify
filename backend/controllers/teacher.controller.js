@@ -46,44 +46,83 @@ const dashboardData = async (req, res) => {
 
 const studentList = async (req, res) => {
     try {
-        const { examId, page = 1, limit = 30 } = req.query;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.max(1, parseInt(req.query.limit) || 30);
+        const search = req.query.searchQuery || req.query.search || "";
+        const { examId } = req.query;
+
         if (!examId) {
             return res.status(400).json({ message: "Exam ID is required." });
         }
 
         const skip = (page - 1) * limit;
 
-        // Find exam submissions for this exam with proper indexing
-        const submissions = await ExamSubmission.find({ examId })
-            .populate({
-                path: "studentId",
-                select: "name rollNumber collegeId batch _id"
+        // Base query for the submissions
+        const submissionQuery = { examId };
+
+        //If searching, find matching student IDs first
+        if (search) {
+            const matchingStudents = await Student.find({
+                $or: [
+                    { name: { $regex: search, $options: "i" } },
+                    { rollNumber: { $regex: search, $options: "i" } }
+                ]
             })
-            .populate({
-                path: "examId",
-                select: "totalMarks",
-            })
-            .skip(skip)
-            .limit(Number(limit))
+            .select("_id")
             .lean();
 
-        const total = await ExamSubmission.countDocuments({ examId });
+            const matchingStudentIds = matchingStudents.map(student => student._id);
 
-        if (submissions.length === 0) {
+            // If a search was entered but no students match, return early
+            if (matchingStudentIds.length === 0) {
+                return res.status(200).json({
+                    message: "No students match your search.",
+                    students: [],
+                    total: 0,
+                    pages: 0,
+                    currentPage: page,
+                });
+            }
+
+            // Append the matched IDs to our submission query
+            submissionQuery.studentId = { $in: matchingStudentIds };
+        }
+
+        //Fetch count and actual submissions in parallel for speed
+        const [total, submissions] = await Promise.all([
+            ExamSubmission.countDocuments(submissionQuery),
+            ExamSubmission.find(submissionQuery)
+                .populate({
+                    path: "studentId",
+                    select: "name rollNumber collegeId batch _id"
+                })
+                .populate({
+                    path: "examId",
+                    select: "totalMarks",
+                })
+                .skip(skip)
+                .limit(limit)
+                .lean()
+        ]);
+
+        if (submissions.length === 0 && !search) {
             return res.status(200).json({
                 message: "No students have attempted this exam yet.",
                 students: [],
                 total: 0,
                 pages: 0,
+                currentPage: page,
             });
         }
 
-        // Format response with pagination info
-        return res.status(200).json({
-            message: "Students and their answer sheets fetched successfully.",
-            students: submissions.map(sub => ({
-                ...sub.studentId,
-                _id: sub.studentId._id,
+        // Format response exactly as your frontend expects
+        const formattedStudents = submissions.map(sub => {
+            // Safety check in case student data was deleted from DB but submission remains
+            const studentData = sub.studentId || {}; 
+            
+            return {
+                ...studentData,
+                _id: studentData._id || null,
                 attemptId: sub._id,
                 submittedAt: sub.submittedAt,
                 evaluateStatus: sub.evaluateStatus,
@@ -96,7 +135,12 @@ const studentList = async (req, res) => {
                         totalMarks: sub.examId?.totalMarks || 0,
                     }
                 }]
-            })),
+            };
+        });
+
+        return res.status(200).json({
+            message: "Students and their answer sheets fetched successfully.",
+            students: formattedStudents,
             total,
             pages: Math.ceil(total / limit),
             currentPage: page,
@@ -104,7 +148,7 @@ const studentList = async (req, res) => {
 
     } catch (error) {
         console.error("Error in getting students for evaluation:", error);
-        return res.status(500).json({ message: "Something went wrong." });
+        return res.status(500).json({ message: "An error occurred while fetching the student list." });
     }
 };
 

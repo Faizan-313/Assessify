@@ -84,7 +84,7 @@ function AppContent() {
           <Route path="/create-exam" element={<CreateExam />} />
           <Route path="/dashboard" element={<TeacherDashboard />} />
           <Route path="/teacher/evaluation/:examId" element={<AppearedStudentList />} />
-          <Route path="/teacher/evalvate/:examId/:studentId" element={<ViewPaper />} />
+          <Route path="/teacher/evaluate/:examId/:studentId" element={<ViewPaper />} />
           <Route path="/teacher/monitor/:examId" element={<MonitorExam />} />
         </Route>
       </Route>
