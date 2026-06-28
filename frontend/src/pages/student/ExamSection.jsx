@@ -17,7 +17,10 @@ import { io } from "socket.io-client";
 
 function ExamSection() {
     const { exam, studentDetails, questionPaper } = useExam();
-    const { stop: stopProctoring, setAnomalyHandler } = useProctoringCtx();
+
+    // pull in pause and resume if your context exposes them
+    const { stop: stopProctoring, pause: pauseProctoring, resume: resumeProctoring, setAnomalyHandler } = useProctoringCtx();
+
     const [questions, setQuestions] = useState([]);
     const [answers, setAnswers] = useState({});
     const [selectedLanguages, setSelectedLanguages] = useState({});
@@ -35,9 +38,9 @@ function ExamSection() {
     const socketRef = useRef(null);
     const studentJoinedEmittedRef = useRef(false);
     const startedAtRef = useRef(0);
-    
+
     const isSubmittedRef = useRef(false);
-    //Suppress proctoring UI during submit click sequence (blur/visibility fire before onClick). ms timestamp. 
+    // Suppress proctoring UI during submit click sequence (blur/visibility fire before onClick). ms timestamp.
     const proctoringSuppressedUntilRef = useRef(0);
 
     const questionsRef = useRef([]);
@@ -116,7 +119,6 @@ function ExamSection() {
         if (submitAttemptedRef.current) return;
 
         if (!studentDetails?._id || !questionsRef.current?.length) {
-            // console.warn("Ignored exam submit: session or questions not loaded yet");
             if (userInitiated) {
                 toast.error("Exam is still loading. Please wait a moment.");
             }
@@ -125,7 +127,6 @@ function ExamSection() {
 
         // Prevent automatic submits that fire immediately after mount/navigation
         if (!userInitiated && startedAtRef.current && (Date.now() - startedAtRef.current) < 5000) {
-            // console.warn("Ignored premature auto-submit");
             return;
         }
         proctoringSuppressedUntilRef.current = Date.now() + 8000;
@@ -202,7 +203,7 @@ function ExamSection() {
         }
     }, [exam, studentDetails, navigate, stopProctoring]);
 
-    // Safety net: if the exam page unmounts for any reason (forced redirect, page close, etc.) make sure the camera and detectors are released too.
+    // Safety net: if the exam page unmounts for any reason, release camera and detectors.
     useEffect(() => {
         return () => {
             stopProctoring();
@@ -218,7 +219,7 @@ function ExamSection() {
     const handleSubmitRef = useRef(handleSubmit);
     handleSubmitRef.current = handleSubmit;
 
-    // If session never loads (e.g. opened /section URL directly), send back to registration
+    // If session never loads, send back to registration
     useEffect(() => {
         if (!exam) return;
         const hasSession =
@@ -237,7 +238,7 @@ function ExamSection() {
         return () => clearTimeout(t);
     }, [exam, studentDetails, questionPaper, navigate]);
 
-    //Calculate initial time
+    // Calculate initial time
     useEffect(() => {
         if (!exam?.duration || !exam?.endTime) return;
 
@@ -259,7 +260,7 @@ function ExamSection() {
 
     // Timer countdown — do not depend on timeLeft (re-running every second restarted the interval)
     useEffect(() => {
-        if (!timerReady || isSubmitted || submitAttemptedRef.current || examPaused || !exam) {
+        if (!timerReady || isSubmitted || submitAttemptedRef.current || !exam) {
             return;
         }
 
@@ -276,14 +277,14 @@ function ExamSection() {
         }, 1000);
 
         return () => clearInterval(timerRef.current);
-    }, [timerReady, isSubmitted, examPaused, exam]);
+    }, [timerReady, isSubmitted, exam]);
 
-    // Record when the student actually entered the exam section (used to avoid immediate auto-submits)
+    // Record when the student actually entered the exam section
     useEffect(() => {
         if (exam && studentDetails) startedAtRef.current = Date.now();
     }, [exam, studentDetails]);
 
-    //Socket connection 
+    // Socket connection
     useEffect(() => {
         if (!exam || !studentDetails) return;
 
@@ -325,12 +326,15 @@ function ExamSection() {
                 toast.error("Your exam was terminated by the teacher!");
                 handleSubmitRef.current();
             } else if (data.action === "pause") {
+                setNeedsFullscreen(false);
                 setExamPaused(true);
                 setPauseReason(data.reason || "Paused by teacher");
+                pauseProctoring?.();  
                 toast.error("Exam paused by teacher!");
             } else if (data.action === "resume") {
                 setExamPaused(false);
                 setPauseReason(null);
+                resumeProctoring?.();  
                 toast.success("Exam resumed. You may continue.");
             }
         });
@@ -341,7 +345,7 @@ function ExamSection() {
         };
     }, [exam, studentDetails]);
 
-    //Heartbeat 
+    // Heartbeat
     useEffect(() => {
         const interval = setInterval(() => {
             if (
@@ -359,9 +363,9 @@ function ExamSection() {
         return () => clearInterval(interval);
     }, [exam, studentDetails, timeLeft]);
 
-    //Security: Tab switching 
+    // Security: Tab switching
     useLayoutEffect(() => {
-        if (isSubmitted || submitAttemptedRef.current) return;
+        if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const handleVisibilityChange = () => {
             if (document.hidden) {
@@ -378,11 +382,11 @@ function ExamSection() {
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-    }, [isSubmitted, recordProctoringSignal]);
+    }, [isSubmitted, examPaused, recordProctoringSignal]);
 
-    //Security: Window blur
+    // Security: Window blur 
     useLayoutEffect(() => {
-        if (isSubmitted || submitAttemptedRef.current) return;
+        if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const handleBlur = () => {
             recordProctoringSignal(
@@ -397,14 +401,14 @@ function ExamSection() {
 
         window.addEventListener("blur", handleBlur);
         return () => window.removeEventListener("blur", handleBlur);
-    }, [isSubmitted, recordProctoringSignal]);
+    }, [isSubmitted, examPaused, recordProctoringSignal]);
 
-    //Security: Prevent page refresh/close
+    // Security: Prevent page refresh/close
     useLayoutEffect(() => {
         if (isSubmitted || submitAttemptedRef.current) return;
 
         const handleBeforeUnload = (e) => {
-            if (isSubmittedRef.current || submitAttemptedRef.current) return; 
+            if (isSubmittedRef.current || submitAttemptedRef.current) return;
             if (!isSubmittedRef.current && !submitAttemptedRef.current) {
                 e.preventDefault();
                 e.returnValue = "Your exam is in progress. Are you sure you want to leave?";
@@ -418,7 +422,7 @@ function ExamSection() {
 
     // Security: DevTools / context menu / keyboard shortcuts 
     useLayoutEffect(() => {
-        if (isSubmitted || submitAttemptedRef.current) return; // stops re-registering after submit
+        if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const detectDevTools = () => {
             const threshold = 160;
@@ -488,20 +492,20 @@ function ExamSection() {
         document.addEventListener("keydown", handleKeyDown);
 
         return () => {
-            clearInterval(devToolsInterval);   // cleared as soon as isSubmitted  true
+            clearInterval(devToolsInterval);
             document.removeEventListener("contextmenu", handleContextMenu);
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [isSubmitted, devToolsOpen, recordProctoringSignal]); // isSubmitted triggers cleanup on submit
+    }, [isSubmitted, examPaused, devToolsOpen, recordProctoringSignal]);
 
-    // Silent block: copy / cut / paste and screenshot-ish shortcuts. not added to violation. A brief toast lets the student know.
+    // Silent block: copy / cut / paste and screenshot-ish shortcuts 
     useLayoutEffect(() => {
-        if (isSubmitted || submitAttemptedRef.current) return;
+        if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         let lastToastAt = 0;
         const notify = (msg) => {
             const now = Date.now();
-            if (now - lastToastAt < 1200) return; // throttle — PrintScreen can fire repeatedly
+            if (now - lastToastAt < 1200) return;
             lastToastAt = now;
             toast.error(msg, { id: "exam-block" });
         };
@@ -517,7 +521,6 @@ function ExamSection() {
         const handlePaste = blockClipboardEvent("Paste");
 
         const wipeClipboard = () => {
-            // on PrintScreen Windows.
             if (navigator.clipboard?.writeText) {
                 navigator.clipboard.writeText("").catch(() => {});
             }
@@ -526,11 +529,10 @@ function ExamSection() {
         const handleKeyDown = (e) => {
             const key = (e.key || "").toLowerCase();
 
-            // PrintScreen on Windows / macOS screenshot combos.
             if (
                 e.key === "PrintScreen" ||
                 e.keyCode === 44 ||
-                (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(key)) // macOS: ⌘⇧3/4/5
+                (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(key))
             ) {
                 e.preventDefault();
                 wipeClipboard();
@@ -538,7 +540,6 @@ function ExamSection() {
                 return;
             }
 
-            // Ctrl/Cmd + C / X / V / P — clipboard + print (print path is a screenshot vector).
             if ((e.ctrlKey || e.metaKey) && !e.altKey) {
                 if (["c", "x", "v", "p"].includes(key)) {
                     e.preventDefault();
@@ -568,9 +569,9 @@ function ExamSection() {
             document.removeEventListener("keydown", handleKeyDown, true);
             document.removeEventListener("keyup", handleKeyUp, true);
         };
-    }, [isSubmitted]);
+    }, [isSubmitted, examPaused]);
 
-    //Security: Fullscreen enforcement
+    // Security: Fullscreen enforcement 
     const enterFullscreen = useCallback(async () => {
         if (document.fullscreenElement) {
             setNeedsFullscreen(false);
@@ -599,24 +600,29 @@ function ExamSection() {
     useLayoutEffect(() => {
         if (isSubmitted || submitAttemptedRef.current) return;
 
-        // Try to enter on mount. If the navigation from StudentDetailsFilling preserved the gesture we're already fullscreen; if not, this will fail silently and the overlay prompt takes over.
-        if (!document.fullscreenElement) {
-            enterFullscreen();
-        } else {
-            setNeedsFullscreen(false);
+        // Only attempt to enter / enforce fullscreen when the exam is active
+        if (!examPaused) {
+            if (!document.fullscreenElement) {
+                enterFullscreen();
+            } else {
+                setNeedsFullscreen(false);
+            }
         }
 
         const handleFullscreenChange = () => {
             if (!document.fullscreenElement) {
-                recordProctoringSignal(
-                    {
-                        type: "FULLSCREEN_EXIT",
-                        timestamp: new Date().toISOString(),
-                        message: "Student exited fullscreen mode"
-                    },
-                    "Please remain in fullscreen mode during the exam"
-                );
-                if (proctoringMayRecord()) setNeedsFullscreen(true);
+                // Don't record a violation or show the gate while the exam is paused
+                if (!examPaused) {
+                    recordProctoringSignal(
+                        {
+                            type: "FULLSCREEN_EXIT",
+                            timestamp: new Date().toISOString(),
+                            message: "Student exited fullscreen mode"
+                        },
+                        "Please remain in fullscreen mode during the exam"
+                    );
+                    if (proctoringMayRecord()) setNeedsFullscreen(true);
+                }
             } else {
                 setNeedsFullscreen(false);
             }
@@ -630,14 +636,13 @@ function ExamSection() {
                 document.exitFullscreen().catch(err => console.error(err));
             }
         };
-    }, [isSubmitted, recordProctoringSignal, enterFullscreen]);
+    }, [isSubmitted, examPaused, recordProctoringSignal, enterFullscreen]);
 
-    //Security: AI monitoring - forward anomalies (no_face, multiple_faces, head/gaze off-axis, phone_detected, ...) through the same violation pipeline as DOM-based events so they hit the socket, the teacher dashboard, and the DB.
+    // Security: AI monitoring 
     useLayoutEffect(() => {
-        if (isSubmitted || submitAttemptedRef.current) return;
+        if (isSubmitted || submitAttemptedRef.current || examPaused) return;
 
         const handleAnomaly = (anomaly) => {
-            // anomaly: { id, key, message, startTime } from AnomalyTracker
             const type = `AI_${String(anomaly.key || "UNKNOWN").toUpperCase()}`;
             recordProctoringSignal(
                 {
@@ -652,7 +657,7 @@ function ExamSection() {
 
         setAnomalyHandler(handleAnomaly);
         return () => setAnomalyHandler(null);
-    }, [isSubmitted, recordProctoringSignal, setAnomalyHandler]);
+    }, [isSubmitted, examPaused, recordProctoringSignal, setAnomalyHandler]);
 
     // Helpers
     const handleAnswerChange = useCallback((questionId, value) => {
@@ -720,8 +725,8 @@ function ExamSection() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] via-[#e8f5f3] to-[#dff1ee] dark:from-[#092635] dark:via-[#1b4242] dark:to-[#0d3a47] py-8 px-4 sm:px-6 lg:px-8">
 
-            {/* Fullscreen gate — only mounted when we lose fullscreen. The user-gesture on this button is what lets the browser honor the request. */}
-            {needsFullscreen && !isSubmitted && (
+            {/*Fullscreen gate */}
+            {needsFullscreen && !isSubmitted && !examPaused && (
                 <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center px-4">
                     <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 text-center border-2 border-red-400 dark:border-red-600">
                         <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">

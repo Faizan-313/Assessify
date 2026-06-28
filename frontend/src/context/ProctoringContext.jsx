@@ -9,14 +9,20 @@ export function ProctoringProvider({ children }) {
   const [showOverlay, setShowOverlay] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
-  //  ExamSection can register a handler so AI-monitoring anomalies
-  // get forwarded into the same violation pipeline as DOM-based events. If no
-  // handler is registered (during calibration), we fall back to a toast.
+  // We use a ref for pause state so our processing loop always reads the latest value
+  // without needing to be re-rendered or re-mounted.
+  const isPausedRef = useRef(false);
+  
+  // Ref to hold the anomaly handler provided by the component
   const anomalyHandlerRef = useRef(null);
 
   const { webcamRef, phase } = useProctoring({
     enabled,
+    isPausedRef, 
     onAnomalyStart: (anomaly) => {
+      // THE GATE: If paused, completely ignore the anomaly
+      if (isPausedRef.current) return;
+
       if (anomalyHandlerRef.current) {
         anomalyHandlerRef.current(anomaly);
       } else {
@@ -33,6 +39,7 @@ export function ProctoringProvider({ children }) {
     setEnabled(true);
     setShowOverlay(true);
     setStatusMessage(null);
+    isPausedRef.current = false;
   }, []);
 
   const finishCalibration = useCallback(() => {
@@ -40,15 +47,26 @@ export function ProctoringProvider({ children }) {
     setStatusMessage(null);
   }, []);
 
+  // Pause & Resume 
+  const pause = useCallback(() => {
+      console.log("Proctoring paused.");
+      isPausedRef.current = true;
+  }, []);
+
+  const resume = useCallback(() => {
+      console.log("Proctoring resumed.");
+      isPausedRef.current = false;
+  }, []);
+
   const stop = useCallback(() => {
     setEnabled(false);
     setShowOverlay(false);
     setStatusMessage(null);
+    isPausedRef.current = false; // Reset pause state
   }, []);
 
-  // Memoize the context value so ExamSection don't re-render on every provider
-  // re-render. startCalibration/finishCalibration/stop/setStatusMessage are all
-  // stable, so the value only changes when phase, enabled, or showOverlay do.
+  // Memoize the context value so ExamSection doesn't re-render on every provider
+  // re-render. Included aliases (stopProctoring, pauseProctoring) so destructuring works perfectly.
   const value = useMemo(
     () => ({
       phase,
@@ -57,10 +75,15 @@ export function ProctoringProvider({ children }) {
       startCalibration,
       finishCalibration,
       stop,
+      stopProctoring: stop,        
+      pause,
+      pauseProctoring: pause,      
+      resume,
+      resumeProctoring: resume,   
       setStatusMessage,
       setAnomalyHandler,
     }),
-    [phase, enabled, showOverlay, startCalibration, finishCalibration, stop, setStatusMessage, setAnomalyHandler]
+    [phase, enabled, showOverlay, startCalibration, finishCalibration, stop, pause, resume, setStatusMessage, setAnomalyHandler]
   );
 
   return (
