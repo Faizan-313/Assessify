@@ -1,5 +1,8 @@
 import { Violation } from "../models/violation.model.js";
 import { ExamSubmission } from "../models/examSubmission.model.js";
+import { Exam } from "../models/exam.model.js";
+
+const endTimers = new Map();
 
 async function isStudentExamFinished(examId, studentId) {
     if (!examId || !studentId) return false;
@@ -7,6 +10,23 @@ async function isStudentExamFinished(examId, studentId) {
     if (submitted) return true;
     const doc = await Violation.findOne({ examId, studentId }).select("status").lean();
     return doc?.status === "submitted";
+}
+
+async function ensureEndTimer(io, examId) {
+    if (endTimers.has(examId)) return;
+
+    const exam = await Exam.findById(examId).select("endTime").lean();
+    if (!exam?.endTime) return;
+
+    const ms = new Date(exam.endTime).getTime() - Date.now();
+    if (ms <= 0) {
+        io.to(`exam_${examId}`).emit("exam-ended", { examId });
+        return;
+    }
+    endTimers.set(examId, setTimeout(() => {
+        io.to(`exam_${examId}`).emit("exam-ended", { examId });
+        endTimers.delete(examId);
+    }, ms));
 }
 
 export default function registerStudentEvents(io, socket) {
@@ -19,6 +39,7 @@ export default function registerStudentEvents(io, socket) {
                 console.warn("Invalid student-joined payload:", payload);
                 return;
             }
+            ensureEndTimer(io, examId);
 
             // Broadcast to teachers monitoring this exam
             const broadcastData = {

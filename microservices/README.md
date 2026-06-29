@@ -176,7 +176,7 @@ pip install -r requirements.txt
 ### Start Text Evaluation Service in venv
 
 ```bash
-ppython -m venv venv
+python -m venv venv
 venv\Scripts\activate
 uvicorn app:app --reload  
 ```

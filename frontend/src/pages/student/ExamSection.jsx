@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
-import { flushSync } from "react-dom";
 import { useExam } from "../../context/ExamContextCore";
 import { useProctoringCtx } from "../../context/proctoringContextCore";
 import toast from "react-hot-toast";
@@ -118,7 +117,7 @@ function ExamSection() {
         [reportViolation]
     );
 
-    const handleSubmit = useCallback(async (userInitiated = false) => {
+    const handleSubmit = useCallback(async (userInitiated = false, force = false) => {
         if (submitAttemptedRef.current) return;
 
         if (!studentDetails?._id || !questionsRef.current?.length) {
@@ -129,7 +128,7 @@ function ExamSection() {
         }
 
         // Prevent automatic submits that fire immediately after mount/navigation
-        if (!userInitiated && startedAtRef.current && (Date.now() - startedAtRef.current) < 5000) {
+        if (!userInitiated && !force && startedAtRef.current && (Date.now() - startedAtRef.current) < 5000) {
             return;
         }
         proctoringSuppressedUntilRef.current = Date.now() + 8000;
@@ -138,11 +137,9 @@ function ExamSection() {
 
         clearInterval(timerRef.current);
         toast.dismiss();
-        // Synchronous commit so useLayoutEffect runs now and removes proctoring listeners before any further events.
-        flushSync(() => {
-            setIsSubmitted(true);
-            setShowConfirmModal(false);
-        });
+
+        setIsSubmitted(true);
+        setShowConfirmModal(false);
 
         try {
             const finalAnswers = questionsRef.current.map(q => ({
@@ -212,9 +209,7 @@ function ExamSection() {
                     proctoringSuppressedUntilRef.current = 0;
                     submitAttemptedRef.current = false;
                     isSubmittedRef.current = false;
-                    flushSync(() => {
-                        setIsSubmitted(false);
-                    });
+                    setIsSubmitted(false);
                 }
             }
     }, [exam, studentDetails, navigate, stopProctoring]);
@@ -360,6 +355,11 @@ function ExamSection() {
                 resumeProctoring?.();  
                 toast.success("Exam resumed. You may continue.");
             }
+        });
+
+        socket.on("exam-ended", () => {
+            toast.error("Exam time has ended! Submitting...", { id: "exam-ended", duration: 4000 });
+            handleSubmitRef.current(false, true);
         });
 
         return () => {

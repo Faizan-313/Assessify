@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { AlertTriangle, Loader2, User, Clock, Shield, XCircle, ChevronDown, ChevronUp, Eye, Users, Smartphone, UserX, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import ReasonWindow from "./components/PauseReasonWindow";
@@ -22,6 +22,8 @@ export default function MonitorExam() {
     const { fetchParticularExamDetails } = useExam();
     const [view, setView] = useState("active");
     const [searchQuery, setSearchQuery] = useState("");
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchExamDetails = async () => {
@@ -204,6 +206,11 @@ export default function MonitorExam() {
                     },
                 };
             });
+        });
+
+        s.on("exam-ended", () => {
+            toast.success("Exam ended! All students are being submitted.", { id: "exam-ended", duration: 4000 });
+            setTimeout(() => navigate("/dashboard"), 3000);
         });
 
         return () => {
