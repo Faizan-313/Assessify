@@ -179,6 +179,7 @@ const evaluatePaper = async (req, res) => {
         if (exam.evaluationStatus === "in_progress") {
             return res.status(409).json({
                 message: "Auto evaluation is currently running. Please wait for it to finish.",
+                evaluationStatus: exam.evaluationStatus,
             });
         }
 

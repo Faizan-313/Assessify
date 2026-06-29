@@ -11,6 +11,7 @@ import { apiCall } from "../../api/api";
 import { useExam } from "../../context/ExamContextCore";
 import MarksInput from "./components/MarksInput.jsx";
 import { getSubmissionStatusLabel } from "../../utils/submissionEvaluateStatus";
+import { TeacherPageShell, teacherCardClass, teacherInputClass } from "./components/TeacherPageShell";
 
 // Utility Functions
 const sanitizeAndFormatAnswer = (answer) => {
@@ -362,13 +363,13 @@ function ViewPaper() {
                         STUDENT'S ANSWER
                     </p>
                     <div className="bg-white dark:bg-gray-800 border-2 border-[#5c8374] dark:border-[#1b4242] rounded-lg p-3">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">
+                        <p className="font-semibold text-white">
                             {optionDetails?.text || selectedOption}
                         </p>
                     </div>
                     {question.options?.length > 0 && (
                         <div className="space-y-2 mt-3">
-                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">All Options:</p>
+                            <p className="text-xs font-medium text-gray-400">All Options:</p>
                             <div className="space-y-1">
                                 {question.options.map((option, idx) => {
                                     const isSelected = selectedOption === option._id || selectedOption === option.text;
@@ -408,7 +409,7 @@ function ViewPaper() {
                         Language: {studentAnswer.language}
                     </div>
                 )}
-                <pre className="text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 p-3 rounded-lg text-sm dark:bg-gray-950 bg-white leading-relaxed whitespace-pre-wrap break-words font-mono overflow-auto max-h-96">
+                <pre className="text-white border border-gray-300 dark:border-gray-600 p-3 rounded-lg text-sm dark:bg-gray-950 bg-white leading-relaxed whitespace-pre-wrap break-words font-mono overflow-auto max-h-96">
                     {sanitizeAndFormatAnswer(studentAnswer.answerText)}
                 </pre>
                 {renderAiGraderNote(studentAnswer)}
@@ -424,109 +425,102 @@ function ViewPaper() {
     // Loading State
     if (loading || !exam || !student || !localExamAttempt) {
         return (
-            <div className="pt-20 min-h-screen bg-gradient-to-b from-[#f0f8f7] to-[#e0f2f0] dark:from-[#092635] dark:to-[#1b4242] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 text-[#5c8374] animate-spin" />
-                    <p className="text-gray-600 dark:text-gray-300">Loading exam paper...</p>
+            <TeacherPageShell>
+                <div className="flex flex-col items-center justify-center py-24">
+                    <Loader2 className="w-8 h-8 text-sky-400 animate-spin" />
+                    <p className="text-gray-400 mt-3">Loading exam paper...</p>
                 </div>
-            </div>
+            </TeacherPageShell>
         );
     }
 
     const studentAnswers = localExamAttempt.answers || [];
 
     return (
-        <div className="pt-20 min-h-screen bg-gradient-to-b from-[#f0f8f7] to-[#e0f2f0] dark:from-[#092635] dark:to-[#1b4242] py-8 px-4 sm:px-6">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => navigate(`/teacher/evaluation/${examId}`)}
-                            className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-xl transition-all duration-200"
-                            title="Go back"
-                            aria-label="Go back"
-                        >
-                            <ArrowLeft className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                        </button>
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                                Evaluate Paper
-                            </h1>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {exam.title}
-                            </p>
-                        </div>
+        <TeacherPageShell maxWidth="max-w-7xl">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-8">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => navigate(`/teacher/evaluation/${examId}`)}
+                        className="p-2.5 hover:bg-white/[0.06] border border-white/10 rounded-xl transition-all"
+                        title="Go back"
+                        aria-label="Go back"
+                    >
+                        <ArrowLeft className="w-5 h-5 text-gray-300" />
+                    </button>
+                    <div>
+                        <span className="inline-block px-3 py-1 mb-2 text-xs font-semibold tracking-wider uppercase rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                            Grading
+                        </span>
+                        <h1 className="text-3xl font-bold text-white">Evaluate Paper</h1>
+                        <p className="text-sm text-gray-400">{exam.title}</p>
                     </div>
-
-                    {canDownloadPaper && (
-                        <button
-                            onClick={handleDownloadPaper}
-                            disabled={downloadingPaper}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white px-5 py-3 text-sm font-semibold shadow-md shadow-slate-500/70 transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-slate-500/50 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-                        >
-                            {downloadingPaper ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    Downloading...
-                                </>
-                            ) : (
-                                <>
-                                    <FileText className="w-4 h-4" />
-                                    Download Paper
-                                </>
-                            )}
-                        </button>
-                    )}
                 </div>
 
-                <div className="grid lg:grid-cols-3 gap-6">
-                    {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {/* Exam Details Card */}
-                        <div className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-md">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                                Exam Details
-                            </h2>
+                {canDownloadPaper && (
+                    <button
+                        onClick={handleDownloadPaper}
+                        disabled={downloadingPaper}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white px-5 py-3 text-sm font-semibold shadow-lg shadow-sky-500/20 transition-all disabled:opacity-60"
+                    >
+                        {downloadingPaper ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Downloading...
+                            </>
+                        ) : (
+                            <>
+                                <FileText className="w-4 h-4" />
+                                Download Paper
+                            </>
+                        )}
+                    </button>
+                )}
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                    <div className={`${teacherCardClass} p-6`}>
+                        <h2 className="text-xl font-bold text-white mb-4">Exam Details</h2>
                             <div className="grid sm:grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Exam Title</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                    <p className="text-xs text-gray-500 font-medium">Exam Title</p>
+                                    <p className="font-semibold text-white">
                                         {exam.title}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Exam Code</p>
-                                    <p className="font-mono text-gray-900 dark:text-gray-100 text-sm">
+                                    <p className="text-xs text-gray-400 font-medium">Exam Code</p>
+                                    <p className="font-mono text-white text-sm">
                                         {exam.examCode}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Semester</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                    <p className="text-xs text-gray-400 font-medium">Semester</p>
+                                    <p className="font-semibold text-white">
                                         {exam.semester || "N/A"}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Session</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                    <p className="text-xs text-gray-400 font-medium">Session</p>
+                                    <p className="font-semibold text-white">
                                         {exam.session || "N/A"}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Branch</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                    <p className="text-xs text-gray-400 font-medium">Branch</p>
+                                    <p className="font-semibold text-white">
                                         {exam.branch || "N/A"}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Duration</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                    <p className="text-xs text-gray-400 font-medium">Duration</p>
+                                    <p className="font-semibold text-white">
                                         {exam.duration} minutes
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">Total Marks</p>
+                                    <p className="text-xs text-gray-400 font-medium">Total Marks</p>
                                     <p className="font-bold text-[#5c8374] dark:text-[#9ec8b9]">
                                         {maxMarks}
                                     </p>
@@ -535,8 +529,8 @@ function ViewPaper() {
                         </div>
 
                         {/* Questions & Answers Card */}
-                        <div className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-md">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+                        <div className="bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl p-6">
+                            <h2 className="text-xl font-bold text-white mb-6">
                                 Questions & Answers
                             </h2>
 
@@ -554,7 +548,7 @@ function ViewPaper() {
                                             >
                                                 <div className="mb-4">
                                                     <div className="flex items-start justify-between gap-3 mb-2">
-                                                        <h3 className="font-bold text-gray-900 dark:text-gray-100">
+                                                        <h3 className="font-bold text-white">
                                                             Q{idx + 1}. {question.questionText}
                                                         </h3>
                                                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -579,7 +573,7 @@ function ViewPaper() {
                             ) : (
                                 <div className="text-center py-12">
                                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3 opacity-50" />
-                                    <p className="text-gray-600 dark:text-gray-400">
+                                    <p className="text-gray-400">
                                         No questions available for this exam
                                     </p>
                                 </div>
@@ -588,7 +582,7 @@ function ViewPaper() {
 
                         {/* Submission Info */}
                         {localExamAttempt && (
-                            <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4 text-sm text-gray-400 space-y-1">
                                 <p>
                                     <strong>Submitted:</strong> {new Date(localExamAttempt.submittedAt).toLocaleString()}
                                 </p>
@@ -608,38 +602,38 @@ function ViewPaper() {
                     </div>
 
                     <div className="space-y-6">
-                        <div className="bg-[#f0f7f6] dark:bg-[#1b4242]/20 border border-[#9ec8b9] dark:border-[#5c8374] rounded-2xl p-5 shadow-md">
-                            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4">
+                        <div className="bg-[#f0f7f6] dark:bg-[#1b4242]/80 border border-[#9ec8b9] dark:border-[#5c8374] rounded-2xl p-5 shadow-md">
+                            <h3 className="font-bold text-white mb-4">
                                 Student Information
                             </h3>
                             <div className="space-y-3 text-sm">
                                 <div>
-                                    <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">Full Name</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{student.name}</p>
+                                    <p className="text-gray-400 text-xs font-medium">Full Name</p>
+                                    <p className="font-semibold text-white">{student.name}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">Roll Number</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{student.rollNumber}</p>
+                                    <p className="text-gray-400 text-xs font-medium">Roll Number</p>
+                                    <p className="font-semibold text-white">{student.rollNumber}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">College ID</p>
-                                    <p className="font-mono text-gray-900 dark:text-gray-100 text-xs">{student.collegeId}</p>
+                                    <p className="text-gray-400 text-xs font-medium">College ID</p>
+                                    <p className="font-mono text-white text-xs">{student.collegeId}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-600 dark:text-gray-400 text-xs font-medium">Batch</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{student.batch}</p>
+                                    <p className="text-gray-400 text-xs font-medium">Batch</p>
+                                    <p className="font-semibold text-white">{student.batch}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Violations Card */}
-                        <div className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-md">
+                        <div className="bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl p-6">
                             <button
                                 onClick={() => setShowViolations(prev => !prev)}
                                 className="w-full flex items-center justify-between"
                                 aria-expanded={showViolations}
                             >
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                     <AlertTriangle className="w-5 h-5 text-orange-500" />
                                     Exam Violations
                                     {examViolations.length > 0 && (
@@ -674,7 +668,7 @@ function ViewPaper() {
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400 ml-8">
+                                                    <p className="text-xs text-gray-400 ml-8">
                                                         {new Date(violation.timestamp).toLocaleString()}
                                                     </p>
                                                 </div>
@@ -683,7 +677,7 @@ function ViewPaper() {
                                     ) : (
                                         <div className="text-center py-4">
                                             <Eye className="w-8 h-8 text-green-500 mx-auto mb-2 opacity-60" />
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            <p className="text-sm text-gray-400">
                                                 No violations detected during this exam
                                             </p>
                                         </div>
@@ -693,8 +687,8 @@ function ViewPaper() {
                         </div>
 
                         {/* Mark Paper Card */}
-                        <div className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-md sticky top-24">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-5">
+                        <div className="bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl p-6 sticky top-24">
+                            <h3 className="text-lg font-bold text-white mb-5">
                                 Mark Paper
                             </h3>
 
@@ -709,7 +703,7 @@ function ViewPaper() {
                                             value={totalObtainedMarks.toFixed(1)}
                                             readOnly
                                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
-                                            bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium text-lg
+                                            bg-gray-100 dark:bg-gray-600 text-white font-medium text-lg
                                             cursor-not-allowed"
                                         />
                                         <span className="absolute right-3 top-2.5 text-gray-500 dark:text-gray-400 font-medium text-sm">
@@ -734,10 +728,7 @@ function ViewPaper() {
                                         disabled={submitting}
                                         rows={5}
                                         maxLength={500}
-                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg
-                                        bg-white/70 dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                                        placeholder-gray-400 focus:ring-2 focus:ring-[#5c8374] 
-                                        focus:border-transparent outline-none transition resize-none disabled:opacity-50"
+                                        className={`w-full ${teacherInputClass} resize-none disabled:opacity-50`}
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
                                         {comments.length} / 500 characters
@@ -749,10 +740,9 @@ function ViewPaper() {
                                 <button
                                     onClick={handleSubmit}
                                     disabled={submitting || totalObtainedMarks === 0}
-                                    className="w-full bg-[#5c8374] hover:bg-[#1b4242] disabled:bg-gray-400 disabled:cursor-not-allowed
-                                    text-white py-2.5 rounded-lg font-semibold transition duration-200
-                                    focus:ring-2 focus:ring-[#9ec8b9] focus:ring-offset-2
-                                    dark:focus:ring-offset-gray-800 flex items-center justify-center gap-2 text-sm"
+                                    className="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed
+                                    text-white py-2.5 rounded-xl font-semibold transition duration-200
+                                    flex items-center justify-center gap-2 text-sm"
                                 >
                                     {submitting ? (
                                         <>
@@ -770,8 +760,7 @@ function ViewPaper() {
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </TeacherPageShell>
     );
 }
 

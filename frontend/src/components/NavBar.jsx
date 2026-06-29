@@ -111,27 +111,42 @@ function NavBar() {
                             <div className="relative" ref={profileRef}>
                                 <button
                                     onClick={() => setProfileOpen(!profileOpen)}
-                                    className="flex items-center space-x-3 px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300 font-medium"
+                                    className={`flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 rounded-2xl border transition-all duration-200 ${
+                                        profileOpen
+                                            ? "bg-white/10 border-white/15 shadow-lg shadow-black/20"
+                                            : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/15"
+                                    }`}
                                 >
-                                    <div className="w-9 h-9 rounded-full bg-slate-700 border border-slate-600 text-slate-100 flex items-center justify-center text-sm font-semibold">
-                                        {getUserInitials(user.name, user.email)}
+                                    <div className="relative shrink-0">
+                                        <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-br from-sky-400 via-indigo-400 to-violet-500 opacity-80 blur-[1px]" />
+                                        <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white">
+                                            {getUserInitials(user.name, user.email)}
+                                        </div>
                                     </div>
-                                    <span className="truncate max-w-[10rem] text-left">{user.name || user.email}</span>
-                                    <FaChevronDown className={`text-sm transition-transform duration-300 ${profileOpen ? 'rotate-180' : ''}`} />
+                                    <div className="text-left min-w-0 max-w-[140px]">
+                                        <p className="text-sm font-semibold text-white truncate leading-tight">{user.name || "User"}</p>
+                                        <p className="text-[10px] text-white/45 truncate">{user.email}</p>
+                                    </div>
+                                    <FaChevronDown className={`text-white/40 text-xs shrink-0 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`} />
                                 </button>
 
-                                {/* Profile Dropdown */}
-                                <div className={`absolute right-0 mt-2 w-56 bg-gray-800/95 backdrop-blur-md rounded-xl border border-gray-700/50 shadow-xl overflow-hidden transition-all duration-300 ${
-                                    profileOpen ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible -translate-y-2'
+                                <div className={`absolute right-0 mt-2 w-72 bg-gray-900/98 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden transition-all duration-200 ${
+                                    profileOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2 pointer-events-none"
                                 }`}>
-                                    <div className="p-3 border-b border-gray-700/50">
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-semibold text-slate-100">
-                                                {getUserInitials(user.name, user.email)}
+                                    <div className="p-4 bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-transparent border-b border-white/10">
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative shrink-0">
+                                                <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-500 opacity-70" />
+                                                <div className="relative w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white">
+                                                    {getUserInitials(user.name, user.email)}
+                                                </div>
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-white font-semibold truncate">{user.name || 'User'}</p>
-                                                <p className="text-white/60 text-sm truncate">{user.email}</p>
+                                                <p className="text-white font-semibold truncate">{user.name || "User"}</p>
+                                                <p className="text-white/50 text-xs truncate">{user.email}</p>
+                                                <span className="inline-flex mt-1.5 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-sky-500/15 text-sky-300 border border-sky-500/20">
+                                                    Teacher
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -139,17 +154,27 @@ function NavBar() {
                                         <Link
                                             to="/dashboard"
                                             onClick={() => setProfileOpen(false)}
-                                            className="flex items-center space-x-3 px-3 py-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 font-medium"
+                                            className="flex items-center gap-3 px-3 py-2.5 text-white/80 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 font-medium text-sm"
                                         >
-                                            <FaTachometerAlt className="text-cyan-400" />
+                                            <FaTachometerAlt className="text-sky-400" />
                                             <span>Dashboard</span>
                                         </Link>
+                                        <Link
+                                            to="/create-exam"
+                                            onClick={() => setProfileOpen(false)}
+                                            className="flex items-center gap-3 px-3 py-2.5 text-white/80 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200 font-medium text-sm"
+                                        >
+                                            <span className="text-sky-400 text-base leading-none">+</span>
+                                            <span>Create Exam</span>
+                                        </Link>
+                                    </div>
+                                    <div className="p-2 border-t border-white/10">
                                         <button
                                             onClick={handleLogout}
-                                            className="w-full flex items-center space-x-3 px-3 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200 font-medium"
+                                            className="w-full flex items-center gap-3 px-3 py-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all duration-200 font-medium text-sm"
                                         >
                                             <FaSignOutAlt />
-                                            <span>Logout</span>
+                                            <span>Sign out</span>
                                         </button>
                                     </div>
                                 </div>

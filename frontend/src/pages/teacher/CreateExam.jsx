@@ -696,7 +696,7 @@ export default function CreateExam() {
             <div className="absolute -top-40 -left-40 w-[35rem] h-[35rem] bg-slate-700/15 rounded-full blur-[130px] pointer-events-none" />
             <div className="absolute top-1/3 -right-40 w-[35rem] h-[35rem] bg-sky-400/10 rounded-full blur-[130px] pointer-events-none" />
 
-            <div className="relative max-w-5xl mx-auto pb-12 pt-24 sm:pt-28 lg:pt-32 px-4 sm:px-6 lg:px-8">
+            <div className="relative max-w-5xl mx-auto pb-12 py-6 px-4 sm:px-6 lg:px-8">
                 <div className="rounded-2xl p-6 sm:p-8 mb-6 bg-gradient-to-br from-slate-800/15 via-slate-700/15 to-slate-900/10 border border-white/10">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                         <div>

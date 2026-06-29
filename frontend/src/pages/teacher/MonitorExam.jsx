@@ -5,6 +5,7 @@ import { AlertTriangle, Loader2, User, Clock, Shield, XCircle, ChevronDown, Chev
 import toast from "react-hot-toast";
 import ReasonWindow from "./components/PauseReasonWindow";
 import { useExam } from "../../context/ExamContextCore";
+import { TeacherPageShell, teacherCardClass, teacherInputClass } from "./components/TeacherPageShell";
 
 export default function MonitorExam() {
     const { examId } = useParams();
@@ -383,78 +384,81 @@ export default function MonitorExam() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] to-[#e0f2f0] dark:from-[#092635] dark:to-[#1b4242] flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="animate-spin w-12 h-12 mx-auto mb-4 text-[#5c8374]" />
-                    <p className="text-gray-600 dark:text-gray-400">Loading exam details...</p>
+            <TeacherPageShell>
+                <div className="flex flex-col items-center justify-center py-24">
+                    <Loader2 className="animate-spin w-12 h-12 mb-4 text-sky-400" />
+                    <p className="text-gray-400">Loading exam details...</p>
                 </div>
-            </div>
+            </TeacherPageShell>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#f0f8f7] to-[#e0f2f0] dark:from-[#092635] dark:to-[#1b4242] p-6 pt-20">
-            <div className="max-w-7xl mx-auto">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 mb-6">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-6 w-full sm:w-auto">
-                            <div>
-                                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">Live Monitoring</h1>
-                                <p className="text-base text-gray-600 dark:text-gray-400 font-medium mt-1">
-                                    {examDetails?.title || "Exam"}
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => copyToClipboard(examDetails?.examCode)}
-                                className="flex items-center gap-2 mt-3 sm:mt-0 px-3 py-2 bg-[#9ec8b9] dark:bg-[#092635]/20 text-[#092635] dark:text-[#9ec8b9] font-mono text-sm rounded-lg hover:bg-[#9ec8b9] dark:hover:bg-[#092635]/40 transition-all"
-                                title="Copy exam code"
-                            >
-                                <p className="font-semibold">{examDetails?.examCode || "N/A"}</p>
-                            </button>
-                        </div>
-
-                        <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${isConnected
-                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
-                            : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700"
-                            }`}>
-                            <div className={`w-3 h-3 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}></div>
-                            <span className={`font-medium ${isConnected ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
+        <TeacherPageShell>
+            <div className={`mb-6 ${teacherCardClass} p-6 sm:p-8`}>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <span className="inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                            Live Session
+                        </span>
+                        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+                            Monitor{" "}
+                            <span className="bg-gradient-to-r from-emerald-300 to-sky-300 bg-clip-text text-transparent">Exam</span>
+                        </h1>
+                        <p className="text-gray-400 mt-1 text-sm">{examDetails?.title || "Exam"}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button
+                            onClick={() => copyToClipboard(examDetails?.examCode)}
+                            className="flex items-center gap-2 px-4 py-2 bg-white/[0.05] border border-white/10 text-sky-300 font-mono text-sm rounded-xl hover:bg-white/[0.08] transition-all"
+                            title="Copy exam code"
+                        >
+                            {examDetails?.examCode || "N/A"}
+                        </button>
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
+                            isConnected
+                                ? "bg-emerald-500/10 border-emerald-500/30"
+                                : "bg-red-500/10 border-red-500/30"
+                        }`}>
+                            <div className={`w-2.5 h-2.5 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+                            <span className={`text-sm font-medium ${isConnected ? "text-emerald-300" : "text-red-300"}`}>
                                 {isConnected ? "Live" : "Disconnected"}
                             </span>
                         </div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Duration</p>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{examDetails?.duration} minutes</p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Total Marks</p>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{examDetails?.totalMarks}</p>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Students Monitored</p>
-                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{Object.keys(studentViolations).length}</p>
-                        </div>
-                    </div>
                 </div>
 
-                {Object.keys(studentViolations).length === 0 ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-12 text-center">
-                        <Loader2 className="animate-spin w-12 h-12 mx-auto mb-4 text-[#5c8374]" />
-                        <p className="text-gray-600 dark:text-gray-400 text-lg">Waiting for students to join...</p>
-                        <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">Students will appear here when they start the exam</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Duration</p>
+                        <p className="text-lg font-semibold text-white">{examDetails?.duration} minutes</p>
                     </div>
-                ) : (
+                    <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Marks</p>
+                        <p className="text-lg font-semibold text-white">{examDetails?.totalMarks}</p>
+                    </div>
+                    <div className="rounded-xl p-4 bg-white/[0.03] border border-white/10">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Students Monitored</p>
+                        <p className="text-lg font-semibold text-white">{Object.keys(studentViolations).length}</p>
+                    </div>
+                </div>
+            </div>
+
+            {Object.keys(studentViolations).length === 0 ? (
+                <div className={`${teacherCardClass} p-12 text-center`}>
+                    <Loader2 className="animate-spin w-12 h-12 mx-auto mb-4 text-sky-400" />
+                    <p className="text-gray-300 text-lg">Waiting for students to join...</p>
+                    <p className="text-gray-500 text-sm mt-2">Students will appear here when they start the exam</p>
+                </div>
+            ) : (
                     <div className="space-y-3">
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2">
-                            <div className="flex flex-wrap gap-2 p-1 bg-gray-100 dark:bg-gray-900/60 rounded-xl border border-gray-200 dark:border-gray-700 w-fit">
+                            <div className="flex flex-wrap gap-2 p-1 bg-white/[0.03] rounded-xl border border-white/10 w-fit">
                                 <button
                                     onClick={showActiveStudents}
                                     className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer ${view === "active"
-                                            ? "bg-white dark:bg-gray-800 text-[#1b4242] dark:text-[#9ec8b9] shadow-sm ring-1 ring-gray-200 dark:ring-gray-600"
-                                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                                            ? "bg-sky-500/15 text-sky-300 border border-sky-500/30 shadow-sm"
+                                            : "text-gray-400 hover:text-white"
                                         }`}
                                 >
                                     <span className="flex items-center gap-2">
@@ -471,8 +475,8 @@ export default function MonitorExam() {
                                 <button
                                     onClick={showCompletedStudents}
                                     className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all duration-200 cursor-pointer ${view === "completed"
-                                            ? "bg-white dark:bg-gray-800 text-[#1b4242] dark:text-[#9ec8b9] shadow-sm ring-1 ring-gray-200 dark:ring-gray-600"
-                                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                                            ? "bg-white/[0.08] text-white border border-white/15 shadow-sm"
+                                            : "text-gray-400 hover:text-white"
                                         }`}
                                 >
                                     <span className="flex items-center gap-2">
@@ -494,7 +498,7 @@ export default function MonitorExam() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder="Search by name, roll number, or college ID…"
-                                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5c8374]/40 focus:border-[#5c8374] transition-shadow shadow-sm"
+                                    className={`${teacherInputClass} pl-10 py-2.5 text-sm`}
                                 />
                                 {searchQuery && (
                                     <button
@@ -508,26 +512,26 @@ export default function MonitorExam() {
                             </div>
                         </div>
 
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        <p className="text-xs text-gray-500 mb-4">
                             Completed: {submittedCount} · Terminated: {terminatedCount}
                         </p>
 
                         <div className="space-y-6">
                             {view === "active" && (
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                                    <h2 className="text-lg font-semibold text-white mb-3">
                                         Active Students ({activeStudents.length}{searchQuery ? ` of ${activeCount}` : ""})
                                     </h2>
                                     {activeStudents.length === 0 ? (
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
-                                            <p className="text-gray-600 dark:text-gray-400">
+                                        <div className={`${teacherCardClass} p-8 text-center`}>
+                                            <p className="text-gray-400">
                                                 {searchQuery ? "No active students match your search." : "No active students"}
                                             </p>
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
                                             {activeStudents.map((student) => (
-                                                <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                                <div key={student.studentId} className={`${teacherCardClass} overflow-hidden`}>
                                                     <div className="p-4">
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-3 flex-1">
@@ -601,19 +605,19 @@ export default function MonitorExam() {
 
                             {view === "completed" && (
                                 <div>
-                                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+                                    <h2 className="text-lg font-semibold text-white mb-3">
                                         Completed ({completedStudents.length}{searchQuery ? ` of ${completedCount}` : ""})
                                     </h2>
                                     {completedStudents.length === 0 ? (
-                                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8 text-center">
-                                            <p className="text-gray-600 dark:text-gray-400">
+                                        <div className={`${teacherCardClass} p-8 text-center`}>
+                                            <p className="text-gray-400">
                                                 {searchQuery ? "No completed students match your search." : "No submitted or terminated students yet"}
                                             </p>
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
                                             {completedStudents.map((student) => (
-                                                <div key={student.studentId} className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                                <div key={student.studentId} className={`${teacherCardClass} overflow-hidden`}>
                                                     <div className="p-4 flex items-center justify-between gap-4">
                                                         <div className="flex items-center gap-3 min-w-0">
                                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${student.isTerminated ? "bg-red-50 dark:bg-red-900/20" : "bg-emerald-50 dark:bg-emerald-900/20"}`}>
@@ -644,34 +648,32 @@ export default function MonitorExam() {
                         </div>
                     </div>
                 )}
-            </div>
-
-            <ReasonWindow 
-                visible={showWindow} 
-                onSubmit={handleSubmitReason} 
-                onCancel={handleCancel} 
+            <ReasonWindow
+                visible={showWindow}
+                onSubmit={handleSubmitReason}
+                onCancel={handleCancel}
             />
 
             {studentToTerminate && (
                 <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 max-w-md w-full border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-3 mb-4 text-red-600 dark:text-red-400">
+                    <div className="bg-[#0f1117] rounded-xl shadow-2xl p-6 max-w-md w-full border border-white/10">
+                        <div className="flex items-center gap-3 mb-4 text-red-400">
                             <AlertTriangle className="w-8 h-8" />
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Confirm Termination</h3>
+                            <h3 className="text-xl font-bold text-white">Confirm Termination</h3>
                         </div>
-                        <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm">
-                            Are you sure you want to terminate <span className="font-semibold text-red-600 dark:text-red-400">{studentToTerminate.studentDetails?.name}'s</span> exam? This action cannot be undone and their data will not be stored.
+                        <p className="text-gray-400 mb-6 text-sm">
+                            Are you sure you want to terminate <span className="font-semibold text-red-400">{studentToTerminate.studentDetails?.name}&apos;s</span> exam? This action cannot be undone.
                         </p>
                         <div className="flex justify-end gap-3">
-                            <button 
-                                onClick={() => setStudentToTerminate(null)} 
-                                className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-semibold transition-colors"
+                            <button
+                                onClick={() => setStudentToTerminate(null)}
+                                className="px-4 py-2 bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-gray-300 rounded-lg text-sm font-semibold transition-colors"
                             >
                                 Cancel
                             </button>
-                            <button 
-                                onClick={confirmTerminate} 
-                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                            <button
+                                onClick={confirmTerminate}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-semibold transition-colors"
                             >
                                 Confirm Terminate
                             </button>
@@ -679,7 +681,7 @@ export default function MonitorExam() {
                     </div>
                 </div>
             )}
-        </div>
+        </TeacherPageShell>
     );
 }
 

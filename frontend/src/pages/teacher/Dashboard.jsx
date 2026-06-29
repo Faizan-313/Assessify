@@ -1,8 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import {
     Clock, FileText, PlusCircle, Award, BookOpen, TrendingUp,
-    AlertCircle, LayoutDashboard, BarChart3, Settings, Filter,
-    Sidebar, SidebarCloseIcon , GraduationCap, ChevronDown, SlidersHorizontal, Trash2
+    AlertCircle, Filter, ChevronDown, Trash2, SlidersHorizontal,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -23,19 +22,32 @@ export default function TeacherDashboard() {
     const [selectedExam, setSelectedExam] = useState(null);
     const [copiedCode, setCopiedCode] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterBranch, setFilterBranch] = useState("all");
     const [filterSession, setFilterSession] = useState("all");
 
-    const { exams, examsLoading, examsError, fetchExams, deleteExam } = useTeacher();
+    const { exams, examsLoading, examsError, fetchExams, refreshEvaluationStatuses, deleteExam } = useTeacher();
     const navigate = useNavigate();
 
     useEffect(() => {
         fetchExams();
     }, [fetchExams]);
+
+    const hasEvalInProgress = useMemo(
+        () => exams?.some((e) => e.evaluationStatus === "in_progress"),
+        [exams]
+    );
+
+    useEffect(() => {
+        if (!hasEvalInProgress) return;
+
+        refreshEvaluationStatuses();
+        const interval = setInterval(refreshEvaluationStatuses, 10000);
+        return () => clearInterval(interval);
+    }, [hasEvalInProgress, refreshEvaluationStatuses]);
 
     const copyToClipboard = async (code) => {
         try {
@@ -102,10 +114,7 @@ export default function TeacherDashboard() {
     if (examsLoading) return <DashboardSkeleton />;
 
     return (
-        <div
-            className="flex bg-[#080b12] text-gray-100"
-            style={{ fontFamily: "'Inter', system-ui, sans-serif", height: "calc(100vh - 64px)", marginTop: "64px", overflow: "hidden" }}
-        >
+        <div className="flex flex-col h-full overflow-hidden">
             {deleteTarget && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
                     <div
@@ -140,166 +149,134 @@ export default function TeacherDashboard() {
                 </div>
             )}
 
-            {isSidebarOpen && (
-                <div
-                    className="fixed inset-0 z-[54] bg-black/70 backdrop-blur-sm lg:hidden"
-                    style={{ top: "64px" }}
-                    onClick={() => setIsSidebarOpen(false)}
-                />
-            )}
-
-            <aside className={`
-                fixed lg:static z-[55]
-                mt-6
-                w-64 xl:w-72 bg-[#0c1018] border-r border-white/[0.06]
-                flex flex-col shrink-0
-                transition-transform duration-300 ease-in-out
-                ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-            `} style={{ top: "64px", bottom: 0 }}>
-                <div className="px-3 py-4 border-b border-white/[0.15] flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center shadow-lg shadow-sky-500/20">
-                            <GraduationCap className="text-white" size={24} />
-                        </div>
-                        <span className="text-2xl font-semibold tracking-tight text-white">EvalCore</span>
-                    </div>
-                    <button
-                        onClick={() => setIsSidebarOpen(false)}
-                        className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
-                    >
-                        <SidebarCloseIcon size={24} />
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                    <nav className="space-y-0.5">
-                        <p className="px-3 pb-2 text-[11px] font-semibold text-white/25 uppercase tracking-widest">Navigation</p>
+            <div className="flex-1 overflow-y-auto">
+                <div className="px-5 sm:px-8 py-6 sm:py-8 space-y-6 max-w-screen-2xl mx-auto w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <Link
-                            to="/dashboard"
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.06] text-white text-sm font-medium border border-white/[0.08]"
+                            to="/create-exam"
+                            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white text-sm font-semibold shadow-lg shadow-sky-500/20 transition-all order-first sm:order-last"
                         >
-                            <LayoutDashboard size={16} className="text-sky-400" />
-                            Dashboard
+                            <PlusCircle size={16} />
+                            Create Exam
                         </Link>
-                        <SidebarButton icon={<BarChart3 size={16} />} label="Analytics" />
-                        <SidebarButton icon={<Settings size={16} />} label="Settings" />
-                    </nav>
 
-                    <div className="space-y-3">
-                        <p className="px-3 text-[11px] font-semibold text-white/25 uppercase tracking-widest">Filter Exams</p>
-                        <FilterSelect
-                            label="Status"
-                            value={filterStatus}
-                            onChange={setFilterStatus}
-                            options={[
-                                { value: "all", label: "All statuses" },
-                                { value: "live", label: "Live now" },
-                                { value: "upcoming", label: "Upcoming" },
-                                { value: "completed", label: "Completed" },
-                            ]}
-                        />
-                        <FilterSelect
-                            label="Branch"
-                            value={filterBranch}
-                            onChange={setFilterBranch}
-                            options={[
-                                { value: "all", label: "All branches" },
-                                ...uniqueBranches.map(b => ({ value: b, label: b })),
-                            ]}
-                        />
-                        <FilterSelect
-                            label="Session"
-                            value={filterSession}
-                            onChange={setFilterSession}
-                            options={[
-                                { value: "all", label: "All sessions" },
-                                ...uniqueSessions.map(s => ({ value: s, label: s })),
-                            ]}
-                        />
-                        {activeFilterCount > 0 && (
-                            <button
-                                onClick={clearFilters}
-                                className="w-full py-2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
-                            >
-                                Clear all filters
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </aside>
-
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                <header className="h-14 mt-6 bg-[#080b12]/80 backdrop-blur-xl border-b border-white/[0.06] px-5 sm:px-8 flex items-center justify-between shrink-0 relative z-10">
-                    <div className="flex items-center gap-4">
                         <button
-                            onClick={() => setIsSidebarOpen(true)}
-                            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
+                            onClick={() => setFiltersOpen((prev) => !prev)}
+                            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all sm:order-first ${
+                                filtersOpen || activeFilterCount > 0
+                                    ? "bg-sky-500/10 border-sky-500/25 text-sky-300"
+                                    : "bg-white/[0.03] border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.05]"
+                            }`}
                         >
-                            <Sidebar size={24} />
-                        </button>
-                        <div>
-                            <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
-                            <p className="text-xs text-white/30 hidden sm:block">Manage exams and monitor sessions</p>
-                        </div>
-                    </div>
-                </header>
-
-                <div className="flex-1 overflow-y-auto">
-                    <div className="px-5 sm:px-8 py-8 space-y-8 max-w-screen-2xl mx-auto w-full">
-
-                        {examsError && (
-                            <div className="p-4 bg-red-500/8 border border-red-500/20 rounded-xl flex items-start gap-3">
-                                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                                <p className="text-sm text-red-300">{examsError}</p>
-                            </div>
-                        )}
-
-                        {exams?.length > 0 && (
-                            <section>
-                                <p className="text-[11px] font-semibold text-white/25 uppercase tracking-widest mb-4">Overview</p>
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                                    <StatsCard icon={<BookOpen size={18} />} label="Total Exams" value={stats.total} />
-                                    <StatsCard icon={<TrendingUp size={18} />} label="Live Now" value={stats.live} accent="emerald" dot />
-                                    <StatsCard icon={<Clock size={18} />} label="Upcoming" value={stats.upcoming} accent="amber" />
-                                    <StatsCard icon={<Award size={18} />} label="Completed" value={stats.completed} accent="violet" />
-                                </div>
-                            </section>
-                        )}
-
-                        <section>
-                            <div className="flex items-center gap-3 mb-5">
-                                <p className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">
-                                    {filteredExams.length === exams?.length ? "All Exams" : "Filtered"}
-                                </p>
-                                <span className="text-[11px] font-semibold text-white/40 bg-white/[0.05] border border-white/[0.08] px-2 py-0.5 rounded-full">
-                                    {filteredExams.length}
+                            <SlidersHorizontal size={16} />
+                            Filters
+                            {activeFilterCount > 0 && (
+                                <span className="px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-bold">
+                                    {activeFilterCount}
                                 </span>
-                            </div>
-
-                            {exams?.length === 0 ? (
-                                <EmptyState />
-                            ) : filteredExams.length === 0 ? (
-                                <NoResultsState onClear={clearFilters} />
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pb-8">
-                                    {filteredExams.map((exam) => (
-                                        <ExamCard
-                                            key={exam._id}
-                                            exam={exam}
-                                            onViewDetails={() => setSelectedExam(exam)}
-                                            onEvaluate={() => handleEvaluate(exam._id)}
-                                            onCopyCode={() => copyToClipboard(exam.examCode)}
-                                            onDeleteExam={() => setDeleteTarget(exam._id)}
-                                            copiedCode={copiedCode}
-                                            isDeleting={deletingId === exam._id}
-                                        />
-                                    ))}
-                                </div>
                             )}
-                        </section>
+                        </button>
                     </div>
+
+                    {(filtersOpen || activeFilterCount > 0) && (
+                        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:p-5">
+                            <div className="flex items-center justify-between mb-4">
+                                <p className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Filter Exams</p>
+                                {activeFilterCount > 0 && (
+                                    <button
+                                        onClick={clearFilters}
+                                        className="text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
+                                    >
+                                        Clear all
+                                    </button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <FilterSelect
+                                    label="Status"
+                                    value={filterStatus}
+                                    onChange={setFilterStatus}
+                                    options={[
+                                        { value: "all", label: "All statuses" },
+                                        { value: "live", label: "Live now" },
+                                        { value: "upcoming", label: "Upcoming" },
+                                        { value: "completed", label: "Completed" },
+                                    ]}
+                                />
+                                <FilterSelect
+                                    label="Branch"
+                                    value={filterBranch}
+                                    onChange={setFilterBranch}
+                                    options={[
+                                        { value: "all", label: "All branches" },
+                                        ...uniqueBranches.map((b) => ({ value: b, label: b })),
+                                    ]}
+                                />
+                                <FilterSelect
+                                    label="Session"
+                                    value={filterSession}
+                                    onChange={setFilterSession}
+                                    options={[
+                                        { value: "all", label: "All sessions" },
+                                        ...uniqueSessions.map((s) => ({ value: s, label: s })),
+                                    ]}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {examsError && (
+                        <div className="p-4 bg-red-500/8 border border-red-500/20 rounded-xl flex items-start gap-3">
+                            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-300">{examsError}</p>
+                        </div>
+                    )}
+
+                    {exams?.length > 0 && (
+                        <section>
+                            <p className="text-[11px] font-semibold text-white/25 uppercase tracking-widest mb-4">Overview</p>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                                <StatsCard icon={<BookOpen size={18} />} label="Total Exams" value={stats.total} />
+                                <StatsCard icon={<TrendingUp size={18} />} label="Live Now" value={stats.live} accent="emerald" dot />
+                                <StatsCard icon={<Clock size={18} />} label="Upcoming" value={stats.upcoming} accent="amber" />
+                                <StatsCard icon={<Award size={18} />} label="Completed" value={stats.completed} accent="violet" />
+                            </div>
+                        </section>
+                    )}
+
+                    <section>
+                        <div className="flex items-center gap-3 mb-5">
+                            <p className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">
+                                {filteredExams.length === exams?.length ? "All Exams" : "Filtered"}
+                            </p>
+                            <span className="text-[11px] font-semibold text-white/40 bg-white/[0.05] border border-white/[0.08] px-2 py-0.5 rounded-full">
+                                {filteredExams.length}
+                            </span>
+                        </div>
+
+                        {exams?.length === 0 ? (
+                            <EmptyState />
+                        ) : filteredExams.length === 0 ? (
+                            <NoResultsState onClear={clearFilters} />
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pb-8">
+                                {filteredExams.map((exam) => (
+                                    <ExamCard
+                                        key={exam._id}
+                                        exam={exam}
+                                        onViewDetails={() => setSelectedExam(exam)}
+                                        onEvaluate={() => handleEvaluate(exam._id)}
+                                        onCopyCode={() => copyToClipboard(exam.examCode)}
+                                        onDeleteExam={() => setDeleteTarget(exam._id)}
+                                        copiedCode={copiedCode}
+                                        isDeleting={deletingId === exam._id}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </section>
                 </div>
-            </main>
+            </div>
 
             {selectedExam && (
                 <ExamDetailsModal
@@ -310,19 +287,6 @@ export default function TeacherDashboard() {
                 />
             )}
         </div>
-    );
-}
-
-function SidebarButton({ icon, label }) {
-    return (
-        <button
-            disabled
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/25 text-sm font-medium cursor-not-allowed"
-        >
-            <span className="text-white/20">{icon}</span>
-            {label}
-            <span className="ml-auto text-[9px] tracking-wider text-white/20 font-semibold uppercase">Soon</span>
-        </button>
     );
 }
 
@@ -338,7 +302,7 @@ function FilterSelect({ label, value, onChange, options }) {
                     onChange={(e) => onChange(e.target.value)}
                     className="w-full appearance-none bg-white/[0.04] border border-white/[0.08] text-white/70 text-sm rounded-lg px-3 py-2 pr-7 focus:outline-none focus:border-sky-500/50 focus:bg-white/[0.06] transition-all cursor-pointer"
                 >
-                    {options.map(opt => (
+                    {options.map((opt) => (
                         <option key={opt.value} value={opt.value} className="bg-[#0c1018]">
                             {opt.label}
                         </option>
@@ -418,40 +382,21 @@ function NoResultsState({ onClear }) {
 
 function DashboardSkeleton() {
     return (
-        <div className="flex bg-[#080b12] overflow-hidden animate-pulse" style={{ height: "calc(100vh - 64px)", marginTop: "64px" }}>
-            <aside className="w-72 bg-[#0c1018] border-r border-white/[0.06] hidden lg:flex flex-col p-5 gap-6">
-                <div className="h-8 w-32 bg-white/[0.05] rounded-lg" />
-                <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-9 bg-white/[0.04] rounded-lg" />
-                    ))}
-                </div>
-                <div className="space-y-3 mt-4">
-                    <div className="h-3 w-20 bg-white/[0.04] rounded" />
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-9 bg-white/[0.04] rounded-lg" />
-                    ))}
-                </div>
-            </aside>
-            <main className="flex-1 p-6 lg:p-8 space-y-8">
-                <div className="flex justify-between items-center">
-                    <div className="space-y-2">
-                        <div className="h-5 w-40 bg-white/[0.05] rounded-md" />
-                        <div className="h-3 w-64 bg-white/[0.03] rounded-md" />
-                    </div>
-                    <div className="h-9 w-28 bg-white/[0.05] rounded-lg" />
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-32 rounded-xl bg-white/[0.03] border border-white/[0.06]" />
-                    ))}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-56 rounded-xl bg-white/[0.03] border border-white/[0.06]" />
-                    ))}
-                </div>
-            </main>
+        <div className="px-5 sm:px-8 py-8 space-y-8 max-w-screen-2xl mx-auto animate-pulse">
+            <div className="flex justify-between items-center">
+                <div className="h-10 w-28 bg-white/[0.05] rounded-xl" />
+                <div className="h-10 w-36 bg-white/[0.05] rounded-xl" />
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-32 rounded-xl bg-white/[0.03] border border-white/[0.06]" />
+                ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-56 rounded-xl bg-white/[0.03] border border-white/[0.06]" />
+                ))}
+            </div>
         </div>
     );
 }

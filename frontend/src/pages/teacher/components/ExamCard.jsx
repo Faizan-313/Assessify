@@ -1,7 +1,7 @@
 import {
     Calendar, Clock, Award, Copy, Check,
     Users, ChevronRight, Trash2,
-    Loader2, Sparkles, Loader, AlertCircle
+    Loader2, Sparkles, AlertCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import getExamStatusHelper from "../utils/examStatusHelper.js";
@@ -11,10 +11,14 @@ function ExamCard({ exam, onViewDetails, onEvaluate, onCopyCode, copiedCode, onD
     const questionCount = exam.questions?.length || 0;
     const isCompleted = status.label === "Completed";
     const isLive = status.label === "Live";
+    const isAutoEvaluating = exam.evaluationStatus === "in_progress";
     const navigate = useNavigate();
 
     return (
         <div className="group relative rounded-2xl overflow-hidden bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 hover:border-violet-500/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-violet-500/10">
+            {isAutoEvaluating && (
+                <div className="h-1 w-full bg-gradient-to-r from-sky-500 via-indigo-500 to-emerald-500 animate-pulse" />
+            )}
             <div className="relative p-6 bg-gradient-to-br from-indigo-600/20 via-violet-600/20 to-fuchsia-600/20 border-b border-white/10">
                 <div className="absolute -top-16 -right-16 w-40 h-40 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
                 <div className="relative">
@@ -43,6 +47,12 @@ function ExamCard({ exam, onViewDetails, onEvaluate, onCopyCode, copiedCode, onD
                     <h2 className="text-xl font-bold line-clamp-2 text-white">
                         {exam.title}
                     </h2>
+                    {exam.evaluationStatus === "in_progress" && (
+                        <span className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold leading-snug bg-sky-500/15 text-sky-200 border border-sky-400/35">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Auto evaluation running
+                        </span>
+                    )}
                     {exam.evaluationStatus && exam.evaluationStatus !== "not_started" && exam.evaluationStatus !== "in_progress" && (
                         <ExamEvaluationStatusBadge status={exam.evaluationStatus} />
                     )}

@@ -65,6 +65,53 @@ export const TeacherProvider = ({ children }) => {
         setExams((prev) => prev.filter((exam) => exam._id !== id));
     }, []);
 
+    const refreshEvaluationStatuses = useCallback(async () => {
+        let inProgress = [];
+        setExams((prev) => {
+            inProgress = prev.filter((e) => e.evaluationStatus === "in_progress");
+            return prev;
+        });
+        if (inProgress.length === 0) return;
+
+        try {
+            const results = await Promise.all(
+                inProgress.map(async (exam) => {
+                    try {
+                        const response = await apiCall(
+                            `/api/v1/${exam._id}/auto-evaluation/status`,
+                            "GET"
+                        );
+                        if (response.status === 200) {
+                            return { examId: exam._id, ...response.data };
+                        }
+                    } catch {
+                        // ignore single exam failure
+                    }
+                    return null;
+                })
+            );
+
+            const statusByExamId = new Map(
+                results.filter(Boolean).map((item) => [String(item.examId), item])
+            );
+            if (statusByExamId.size === 0) return;
+
+            setExams((prev) =>
+                prev.map((exam) => {
+                    const status = statusByExamId.get(String(exam._id));
+                    if (!status) return exam;
+                    return {
+                        ...exam,
+                        evaluationStatus: status.evaluationStatus,
+                        autoEvalProgress: status.autoEvalProgress,
+                    };
+                })
+            );
+        } catch {
+            // Silent refresh — dashboard still shows last known status
+        }
+    }, []);
+
     const deleteExam = useCallback(async (id) => {
         try {
             const res = await apiCall(`/api/v1/exams/${id}`, "DELETE");
@@ -95,6 +142,7 @@ export const TeacherProvider = ({ children }) => {
                 examsLoading,
                 examsError,
                 fetchExams,
+                refreshEvaluationStatuses,
                 deleteExam,
                 removeExam,
             }}
