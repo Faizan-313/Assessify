@@ -92,6 +92,16 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
                     continue;
                 }
 
+                //TODO: add gemini for the diagram evaluation 
+                if(ans.questionType === "diagram"){
+                    const imageInText = ans.answerText;
+
+                    const { statue, marksObtained, feedback } = await evaluateDiagramAnswer({
+                        question: q,
+                        answerDiagram
+                    })  
+                }
+
                 needsManualReview = true;
                 updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
             }
