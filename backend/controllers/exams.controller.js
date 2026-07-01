@@ -22,11 +22,17 @@ const createExam = async (req, res) => {
         //Attach images to corresponding questions and upload to cloudinary
         if (req.files && req.files.length > 0) {
             for (const file of req.files) {
-                const index = parseInt(file.fieldname.split("_")[1]);
+                const [fieldType, rawIndex] = file.fieldname.split("_");
+                const index = parseInt(rawIndex);
 
                 if (!isNaN(index) && questionsParsed[index]) {
                     const cloudinaryRes = await uploadBufferToCloudinary(file.buffer);
-                    questionsParsed[index].image = cloudinaryRes.secure_url;
+                    if (fieldType === "image") {
+                        questionsParsed[index].image = cloudinaryRes.secure_url;
+                    }
+                    if (fieldType === "referenceImage") {
+                        questionsParsed[index].referenceImage = cloudinaryRes.secure_url;
+                    }
                 }
             }
         }
@@ -83,6 +89,9 @@ const createExam = async (req, res) => {
                 }
                 if (q.type === "text" && typeof q.referenceAnswer === "string" && q.referenceAnswer.trim() !== "") {
                     evaluationConfig.referenceAnswer = q.referenceAnswer.trim();
+                }
+                if (q.type === "diagram" && typeof q.referenceImage === "string" && q.referenceImage.trim() !== "") {
+                    evaluationConfig.referenceImage = q.referenceImage.trim();
                 }
                 if (q.type === "code" && Array.isArray(q.testCases)) {
                     const testCases = q.testCases

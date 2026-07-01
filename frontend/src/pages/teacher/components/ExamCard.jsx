@@ -128,7 +128,7 @@ function ExamCard({ exam, onViewDetails, onEvaluate, onCopyCode, copiedCode, onD
                     {isCompleted && (
                         <button
                             onClick={onEvaluate}
-                            className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:from-fuchsia-400 hover:to-pink-500 text-white py-2.5 rounded-lg transition-all font-semibold text-sm shadow-lg shadow-fuchsia-500/20 hover:shadow-fuchsia-500/40"
+                            className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-200 to-green-400 hover:from-green-200 hover:to-green-600 text-black hover:text-gray-900 py-2.5 rounded-lg transition-all font-semibold text-sm shadow-lg shadow-fuchsia-500/20 hover:shadow-fuchsia-500/40"
                         >
                             <Award size={16} />
                             Evaluate Papers

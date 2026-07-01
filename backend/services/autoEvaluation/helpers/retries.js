@@ -17,7 +17,9 @@ async function generateContentWithRetries(fn, { maxAttempts = 5 } = {}) {
         } catch (err) {
             lastErr = err;
             const status = err?.status;
-            const retryable = status === 429 || status === 503;
+            // Treat explicit rate-limit/server errors and transient network/fetch failures as retryable
+            const isNetworkError = String(err?.message || "").toLowerCase().includes("fetch failed") || String(err?.code || "").toLowerCase().includes("ecoff");
+            const retryable = status === 429 || status === 503 || isNetworkError;
             if (!retryable || attempt === maxAttempts) {
                 throw err;
             }
@@ -26,7 +28,7 @@ async function generateContentWithRetries(fn, { maxAttempts = 5 } = {}) {
                 fromApi ??
                 Math.min(45_000, Math.ceil(1500 * 2 ** (attempt - 1)));
             console.warn(
-                `[Gemini] ${status} on attempt ${attempt}/${maxAttempts}, waiting ${backoffMs}ms before retry`
+                `[Gemini] ${status || "network"} on attempt ${attempt}/${maxAttempts}, waiting ${backoffMs}ms before retry — error: ${err?.message}`
             );
             await sleep(backoffMs);
         }

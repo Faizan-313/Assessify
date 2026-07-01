@@ -1,10 +1,12 @@
+import { CODE_EVALUATION_PROMPT } from "../prompts/codeEvaluation.prompt.js";
+
 function buildCodeGradingMessages(question, answerText, answerLanguage) {
     const maxMarks = Number(question.marks) || 0;
     const testCases = Array.isArray(question.evaluationConfig?.testCases)
         ? question.evaluationConfig.testCases
         : [];
 
-    const systemPrompt = process.env.SYSTEM_PROMPT_CODE;
+    const systemPrompt = CODE_EVALUATION_PROMPT;
 
     const userPrompt = [
         `Problem statement: ${question.questionText ?? ""}`,

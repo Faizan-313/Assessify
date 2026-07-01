@@ -52,13 +52,15 @@ const ExamSchema = new mongoose.Schema({
             "auto_evaluated",
             "manually_evaluated",
             "completed",
+            "paused",
             "failed"
         ],
         default: "not_started"
     },
     autoEvalProgress: {
         completed: { type: Number, default: 0 },
-        total: { type: Number, default: 0 }
+        total: { type: Number, default: 0 },
+        pauseReason: { type: String, default: null }
     },
     createdAt: { 
         type: Date, 

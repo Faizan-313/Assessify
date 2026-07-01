@@ -328,11 +328,11 @@ function ViewPaper() {
                         STUDENT'S DIAGRAM
                     </p>
                     {studentAnswer.answerText?.startsWith("data:image") ? (
-                        <div className="flex flex-col gap-2">
+                        <div className="max-h-[70vh] overflow-auto rounded-lg border border-gray-300 dark:border-gray-600 bg-white p-2">
                             <img
                                 src={studentAnswer.answerText}
                                 alt="Student's diagram"
-                                className="max-w-full h-auto border border-gray-300 dark:border-gray-600 rounded-lg"
+                                className="block h-auto max-w-none"
                             />
                         </div>
                     ) : (
@@ -561,7 +561,28 @@ function ViewPaper() {
                                                         </div>
                                                     </div>
                                                     {question.image && (
-                                                        <img className="h-[60%] w-full" rel="question image" aria-label="question image" src={question.image}></img>
+                                                        <div className="mt-3 overflow-auto rounded-lg border border-white/10 bg-white p-2">
+                                                            <img
+                                                                className="block max-h-[70vh] max-w-full object-contain"
+                                                                aria-label="question image"
+                                                                src={question.image}
+                                                                alt="question"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    {question.type === "diagram" && question.evaluationConfig?.referenceImage && (
+                                                        <div className="mt-3">
+                                                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-violet-300">
+                                                                Reference Diagram
+                                                            </p>
+                                                            <div className="max-h-[70vh] overflow-auto rounded-lg border border-violet-500/30 bg-white p-2">
+                                                                <img
+                                                                    className="block h-auto max-w-none"
+                                                                    src={question.evaluationConfig.referenceImage}
+                                                                    alt="Reference diagram"
+                                                                />
+                                                            </div>
+                                                        </div>
                                                     )}
                                                 </div>
 

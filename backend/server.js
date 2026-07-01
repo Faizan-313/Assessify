@@ -6,6 +6,7 @@ import compression from "compression";
 import http from "http"; 
 import connectDB from "./database/db.js";
 import { setupSocket } from "./socket/socket.js";
+import recoverInterruptedEvaluations from "./utils/recoverInterruptedEvaluations.js";
 
 import authRouter from "./routes/auth.routes.js";
 import examRouter from "./routes/exam.routes.js";
@@ -37,6 +38,9 @@ app.use(
 );
 
 connectDB();
+
+//recover interrupted evaluations on server restart
+await recoverInterruptedEvaluations();
 
 //Create HTTP server for Socket.io
 const server = http.createServer(app);

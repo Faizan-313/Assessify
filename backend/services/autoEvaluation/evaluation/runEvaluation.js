@@ -5,6 +5,7 @@ import clampMarks from "../helpers/clampMarks.js";
 import scoreMcqQuestion from "./mcq.evaluation.js";
 import sleep from "../helpers/sleep.js";
 import { GEMINI_REQUEST_DELAY_MS } from "../constants.js";
+import { evaluateDiagramAnswer } from "./gemini/diagram.gemini.evaluation.js";
 
 function mcqHasAnswerKey(question) {
     const raw = question.evaluationConfig?.correctOption;
@@ -19,25 +20,36 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
             evaluateStatus: "Pending" 
         }).lean();
 
+        const currentExam = await Exam.findById(examId).select("evaluationStatus autoEvalProgress").lean();
+        const existingCompleted = currentExam?.autoEvalProgress?.completed ?? 0;
+        const existingTotal = currentExam?.autoEvalProgress?.total ?? 0;
         const totalSubmissions = submissions.length;
+        const total = existingTotal > 0 ? Math.max(existingTotal, existingCompleted + totalSubmissions) : totalSubmissions;
 
         if (totalSubmissions === 0) {
-            await Exam.findByIdAndUpdate(examId, { $set: { evaluationStatus: "auto_evaluated" } });
+            await Exam.findByIdAndUpdate(examId, { $set: { evaluationStatus: "auto_evaluated", "autoEvalProgress.total": total, "autoEvalProgress.completed": existingCompleted } });
             return;
         }
 
-        //Initialize progress tracking in the database
+        //Initialize or preserve progress tracking in the database
         await Exam.findByIdAndUpdate(examId, { 
             $set: { 
                 evaluationStatus: "in_progress",
-                autoEvalProgress: { completed: 0, total: totalSubmissions }
+                "autoEvalProgress.total": total,
+                "autoEvalProgress.completed": existingCompleted,
             } 
         });
 
         const questionById = new Map(questionPaper?.questions?.map((q) => [String(q._id), q]));
-        let completedCount = 0;
+        let completedCount = existingCompleted;
 
         for (const sub of submissions) {
+            const activeExam = await Exam.findById(examId).select("evaluationStatus").lean();
+            if (!activeExam || activeExam.evaluationStatus !== "in_progress") {
+                console.info("Auto evaluation job stopped for exam", examId, "due to status", activeExam?.evaluationStatus);
+                return;
+            }
+
             let totalScore = 0;
             let needsManualReview = false;
             const updatedAnswers = [];
@@ -92,18 +104,34 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
                     continue;
                 }
 
-                //TODO: add gemini for the diagram evaluation 
+                //sepearte gemini for the diagram evaluation (it will run in both local and production env)
                 if(ans.questionType === "diagram"){
                     const imageInText = ans.answerText;
 
-                    const { statue, marksObtained, feedback } = await evaluateDiagramAnswer({
+                    const { status, marksObtained, feedback } = await evaluateDiagramAnswer({
                         question: q,
-                        answerDiagram
-                    })  
-                }
+                        answerDiagram: imageInText
+                    }) 
+                    
+                    if (imageInText && GEMINI_REQUEST_DELAY_MS > 0) {
+                        await sleep(GEMINI_REQUEST_DELAY_MS);
+                    }
 
-                needsManualReview = true;
-                updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
+                    if(status == "error"){
+                        needsManualReview = true;
+                        updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
+                        continue;
+                    }
+
+                    const safeMarks = clampMarks(marksObtained, Number(q.marks) || 0);
+                    totalScore += safeMarks;
+                    updatedAnswers.push({
+                        ...ans,
+                        marksObtained: safeMarks,
+                        aiFeedback: typeof feedback === "string" ? feedback : "",
+                    });
+
+                }
             }
 
             const evaluateStatus = needsManualReview ? "Pending" : "AutoEvaluated";

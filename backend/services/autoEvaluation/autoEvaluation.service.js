@@ -21,6 +21,7 @@ async function startAutoEvaluation(examId, userId) {
         {
             $set: {
                 evaluationStatus: "in_progress",
+                "autoEvalProgress.pauseReason": null,
             },
         },
         {
@@ -53,6 +54,7 @@ async function startAutoEvaluation(examId, userId) {
         message: "Auto evaluation started",
         evaluationStatus: "in_progress",
         exam: claimed,
+        autoEvalProgress: claimed.autoEvalProgress || { completed: 0, total: 0, pauseReason: null },
     };
 }
 

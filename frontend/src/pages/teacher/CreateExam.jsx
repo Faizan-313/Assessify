@@ -63,6 +63,11 @@ export default function CreateExam() {
             newQuestion.referenceAnswer = "";
         }
 
+        if (type === "diagram") {
+            newQuestion.referenceImage = null;
+            newQuestion.referenceImagePreview = null;
+        }
+
         if (type === "code") {
             newQuestion.testCases = [createEmptyTestCase()];
         }
@@ -93,7 +98,9 @@ export default function CreateExam() {
                     const sanitizedQuestions = (examData.questions || []).map(q => ({
                         ...q,
                         image: null,
-                        imagePreview: null
+                        imagePreview: null,
+                        referenceImage: null,
+                        referenceImagePreview: null
                     }));
 
                     setQuestions(sanitizedQuestions);
@@ -147,6 +154,14 @@ export default function CreateExam() {
             }
             if (value !== "text") {
                 delete updated[index].referenceAnswer;
+            }
+            if (value === "diagram") {
+                updated[index].referenceImage = updated[index].referenceImage || null;
+                updated[index].referenceImagePreview = updated[index].referenceImagePreview || null;
+            }
+            if (value !== "diagram") {
+                delete updated[index].referenceImage;
+                delete updated[index].referenceImagePreview;
             }
             if (value === "code") {
                 updated[index].testCases = normalizeTestCases(updated[index].testCases);
@@ -216,7 +231,9 @@ export default function CreateExam() {
                 const questionsForDraft = questions?.map((q) => ({
                     ...q,
                     image: null,
-                    imagePreview: null
+                    imagePreview: null,
+                    referenceImage: null,
+                    referenceImagePreview: null
                 }));
 
                 const draftExamData = {
@@ -301,6 +318,9 @@ export default function CreateExam() {
         questions?.forEach((q, i) => {
             if (q.image && !(typeof q.image === 'string')) {
                 formData.append(`image_${i}`, q.image);
+            }
+            if (q.type === "diagram" && q.referenceImage && !(typeof q.referenceImage === "string")) {
+                formData.append(`referenceImage_${i}`, q.referenceImage);
             }
         });
 
@@ -445,6 +465,19 @@ export default function CreateExam() {
                             </div>
                         </div>
                     )}
+
+                    {q.type === "diagram" && q.referenceImagePreview && (
+                        <div className="mt-4 rounded-lg border border-violet-500/20 bg-violet-500/[0.05] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-violet-300 mb-2">
+                                Reference Diagram
+                            </p>
+                            <img
+                                src={q.referenceImagePreview}
+                                alt="Reference diagram preview"
+                                className="max-h-64 max-w-full rounded-lg border border-white/10 object-contain bg-white"
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -533,6 +566,19 @@ export default function CreateExam() {
                 </div>
 
                 <ImageUploadComponent key={index} index={index} questions={questions} setQuestions={setQuestions} />
+
+                {q.type === "diagram" && (
+                    <ImageUploadComponent
+                        key={`reference-${index}`}
+                        index={index}
+                        questions={questions}
+                        setQuestions={setQuestions}
+                        imageField="referenceImage"
+                        previewField="referenceImagePreview"
+                        label="Reference Diagram"
+                        emptyText="No reference diagram uploaded"
+                    />
+                )}
 
                 {q?.type === "mcq" && (
                     <div className="bg-violet-500/[0.06] p-4 rounded-xl border border-violet-500/20 mb-4">

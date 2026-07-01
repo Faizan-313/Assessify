@@ -18,8 +18,11 @@ function AppearedStudentList() {
     const [evalProgress, setEvalProgress] = useState({ completed: 0, total: 0 });
     const [statusReady, setStatusReady] = useState(false);
     const [startingEvaluation, setStartingEvaluation] = useState(false);
+    const [showAutoEvalModal, setShowAutoEvalModal] = useState(false);
+    const [showPauseConfirmModal, setShowPauseConfirmModal] = useState(false);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [completing, setCompleting] = useState(false);
+    const [pauseReason, setPauseReason] = useState(null);
     
     // Search states
     const [searchInput, setSearchInput] = useState("");
@@ -55,10 +58,11 @@ function AppearedStudentList() {
         try {
             const res = await apiCall(`/api/v1/${examId}/auto-evaluation/status`, "GET");
             const nextStatus = res?.data?.evaluationStatus ?? null;
-            const progress = res?.data?.autoEvalProgress ?? { completed: 0, total: 0 };
+            const progress = res?.data?.autoEvalProgress ?? { completed: 0, total: 0, pauseReason: null };
             
             setEvaluationStatus(nextStatus);
             setEvalProgress(progress);
+            setPauseReason(nextStatus === "paused" ? progress.pauseReason || "Paused by teacher" : null);
             setStatusReady(true);
             return nextStatus;
         } catch (err) {
@@ -130,34 +134,18 @@ function AppearedStudentList() {
 
     const handleAutoEvaluation = async () => {
         if (!canStart) return;
-        
-        const confirmed = await new Promise((resolve) => {
-            const id = toast(() => (
-                <div className="max-w-md">
-                    <div className="font-medium text-gray-900">Start Auto Evaluation?</div>
-                    <div className="text-sm mt-1 text-gray-600">This will scan and grade all pending papers. Manual evaluation will be locked until it finishes.</div>
-                    <div className="flex gap-2 mt-3">
-                        <button
-                            className="px-3 py-1.5 cursor-pointer hover:bg-emerald-700 rounded-md bg-emerald-600 text-white text-sm font-medium transition-colors"
-                            onClick={() => { toast.dismiss(id); resolve(true); }}
-                        >Start</button>
-                        <button
-                            className="px-3 py-1.5 cursor-pointer hover:bg-gray-300 rounded-md bg-gray-200 text-gray-800 text-sm font-medium transition-colors"
-                            onClick={() => { toast.dismiss(id); resolve(false); }}
-                        >Cancel</button>
-                    </div>
-                </div>
-            ));
-        });
-        
-        if (!confirmed) return;
+        setShowAutoEvalModal(true);
+    };
 
+    const confirmAutoEvaluation = async () => {
+        setShowAutoEvalModal(false);
         try {
             setStartingEvaluation(true);
             const res = await apiCall(`/api/v1/${examId}/auto-evaluation/start`, "POST");
             if (res.status === 202 || res.status === 200) {
                 setEvaluationStatus(res.data?.evaluationStatus || "in_progress");
-                toast.success("Auto evaluation started");
+                setPauseReason(null);
+                toast.success(res.data?.message || "Auto evaluation started");
             }
         } catch (error) {
             console.error("Failed to start auto evaluation:", error);
@@ -188,6 +176,28 @@ function AppearedStudentList() {
             toast.error(message);
         } finally {
             setCompleting(false);
+        }
+    };
+
+    const handlePauseEvaluation = () => {
+        if (!inProgress) return;
+        setShowPauseConfirmModal(true);
+    };
+
+    const confirmPauseEvaluation = async () => {
+        setShowPauseConfirmModal(false);
+        if (!inProgress) return;
+
+        try {
+            const res = await apiCall(`/api/v1/${examId}/auto-evaluation/pause`, "PATCH");
+            if (res.status === 200) {
+                setEvaluationStatus("paused");
+                setPauseReason(res.data?.reason || "Paused by teacher");
+                toast.success(res.data?.message || "Auto evaluation paused");
+            }
+        } catch (error) {
+            console.error("Failed to pause auto evaluation:", error);
+            toast.error("Could not pause evaluation. Please try again.");
         }
     };
 
@@ -263,8 +273,18 @@ function AppearedStudentList() {
                             ) : (
                                 <Sparkles className="w-4 h-4" />
                             )}
-                            <span>{evaluating ? "Evaluating..." : evaluationStatus === "failed" ? "Retry Auto" : "Auto Evaluate"}</span>
+                            <span>{evaluating ? "Evaluating..." : evaluationStatus === "failed" ? "Retry" : evaluationStatus === "paused" ? "Resume" : "Auto Evaluate"}</span>
                         </button>
+
+                        {evaluationStatus === "in_progress" && (
+                            <button
+                                onClick={handlePauseEvaluation}
+                                disabled={!inProgress}
+                                className="flex-1 lg:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white whitespace-nowrap bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Pause
+                            </button>
+                        )}
 
                         <button
                             onClick={() => canComplete && setShowCompleteModal(true)}
@@ -277,6 +297,50 @@ function AppearedStudentList() {
                     </div>
                 </div>
             </div>
+            {pauseReason && (
+                <div className="mb-6 px-6 py-4 rounded-2xl border border-white/10 bg-[#111827]/80 text-gray-200">
+                    <div className="flex items-start gap-3">
+                        <ShieldCheck className="w-5 h-5 text-amber-300 mt-0.5" />
+                        <div>
+                            <p className="text-sm font-semibold text-white">Auto evaluation paused</p>
+                            <p className="text-sm text-gray-400">{pauseReason}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {(inProgress || startingEvaluation) && (
+                <div className="border-b border-2 rounded-2xl border-sky-500/25 bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-emerald-500/10 mb-4 px-6 py-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shrink-0">
+                                <Loader2 className="w-5 h-5 text-white animate-spin" />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="text-sm font-bold text-white">Auto Evaluation in Progress</h3>
+                                <p className="text-xs text-gray-400 truncate">{exam.title || "this exam"}</p>
+                            </div>
+                        </div>
+                        {evalProgress?.total > 0 && (
+                            <div className="w-full sm:w-48 shrink-0 flex-none min-w-0 max-w-full">
+                                <div className="flex justify-between text-xs font-semibold text-gray-300 mb-1">
+                                    <span>{evalProgress.completed}/{evalProgress.total}</span>
+                                    <span>{progressPercent}%</span>
+                                </div>
+                                <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                                    <div
+                                        className="bg-sky-500 h-1.5 rounded-full transition-[width] duration-500"
+                                        style={{ width: `${progressPercent}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3">
+                        Manual evaluation is locked on the table below until the job finishes.
+                    </p>
+                </div>
+            )}
 
             {isCompleted && (
                 <div className={`mb-6 ${teacherCardClass} overflow-hidden`}>
@@ -348,40 +412,6 @@ function AppearedStudentList() {
                     <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
                         <h2 className="text-lg font-bold text-white">Student List</h2>
                     </div>
-
-                    {(inProgress || startingEvaluation) && (
-                        <div className="border-b border-sky-500/25 bg-gradient-to-r from-sky-500/10 via-indigo-500/10 to-emerald-500/10 px-6 py-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shrink-0">
-                                        <Loader2 className="w-5 h-5 text-white animate-spin" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <h3 className="text-sm font-bold text-white">Auto Evaluation in Progress</h3>
-                                        <p className="text-xs text-gray-400 truncate">{exam.title || "this exam"}</p>
-                                    </div>
-                                </div>
-                                {evalProgress?.total > 0 && (
-                                    <div className="w-full sm:w-48 shrink-0">
-                                        <div className="flex justify-between text-xs font-semibold text-gray-300 mb-1">
-                                            <span>{evalProgress.completed}/{evalProgress.total}</span>
-                                            <span>{progressPercent}%</span>
-                                        </div>
-                                        <div className="w-full bg-white/10 rounded-full h-1.5">
-                                            <div
-                                                className="bg-sky-500 h-1.5 rounded-full transition-all duration-500"
-                                                style={{ width: `${progressPercent}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-3">
-                                Manual evaluation is locked on the table below until the job finishes.
-                            </p>
-                        </div>
-                    )}
-
                     <div className="relative">
                         {(inProgress || startingEvaluation) && (
                             <div className="absolute inset-0 z-10 bg-[#080b12]/30 pointer-events-auto cursor-not-allowed" aria-hidden="true" />
@@ -437,6 +467,80 @@ function AppearedStudentList() {
                                 </button>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {showAutoEvalModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="max-w-md w-full rounded-2xl border border-white/10 bg-[#0f1117] shadow-2xl overflow-hidden">
+                        <div className="h-1 w-full bg-gradient-to-r from-indigo-500 to-sky-500" />
+                        <div className="p-6 space-y-5">
+                            <div className="flex items-start gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center flex-shrink-0">
+                                    <Sparkles className="w-6 h-6 text-sky-300" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-white">{evaluationStatus === "paused" ? "Resume Auto Evaluation?" : "Start Auto Evaluation?"}</h2>
+                                    <p className="text-xs text-gray-400">This will grade all pending papers and temporarily lock manual evaluation.</p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-gray-300">
+                                We recommend reviewing the student list before {evaluationStatus === "paused" ? "resuming" : "starting"}. You can pause the process anytime while it is running.
+                            </p>
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowAutoEvalModal(false)}
+                                    className="px-5 py-2.5 rounded-xl border border-white/10 text-sm text-gray-300 font-semibold hover:bg-white/[0.05]"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmAutoEvaluation}
+                                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-500 to-emerald-600 hover:from-indigo-400"
+                                >
+                                    <Sparkles className="w-4 h-4" />
+                                    {evaluationStatus === "paused" ? "Resume Evaluation" : "Start Evaluation"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showPauseConfirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="max-w-md w-full rounded-2xl border border-white/10 bg-[#0f1117] shadow-2xl overflow-hidden">
+                        <div className="h-1 w-full bg-gradient-to-r from-amber-500 to-orange-500" />
+                        <div className="p-6 space-y-5">
+                            <div className="flex items-start gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                                    <AlertTriangle className="w-6 h-6 text-amber-400" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-white">Pause Auto Evaluation?</h2>
+                                    <p className="text-xs text-gray-400">Pausing stops the job until you resume it again.</p>
+                                </div>
+                            </div>
+                            <p className="text-sm text-gray-300">
+                                Pausing will preserve completed progress. You can resume from the same state later.
+                            </p>
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setShowPauseConfirmModal(false)}
+                                    className="px-5 py-2.5 rounded-xl border border-white/10 text-sm text-gray-300 font-semibold hover:bg-white/[0.05]"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmPauseEvaluation}
+                                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400"
+                                >
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Pause Evaluation
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

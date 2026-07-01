@@ -198,6 +198,21 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                                 </div>
                                             )}
 
+                                            {q.type === "diagram" && q.evaluationConfig?.referenceImage && (
+                                                <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-lg p-4">
+                                                    <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                                        <ImageIcon size={14} /> Reference Diagram
+                                                    </h4>
+                                                    <div className="max-h-80 overflow-auto rounded-lg border border-slate-700 bg-white p-2">
+                                                        <img
+                                                            src={q.evaluationConfig.referenceImage}
+                                                            alt="Reference diagram"
+                                                            className="block h-auto max-w-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Code Test Cases */}
                                             {q.type === "code" && q.evaluationConfig?.testCases?.length > 0 && (
                                                 <div className="space-y-2">
@@ -227,7 +242,7 @@ function ExamDetailsModal({ exam, onClose, copiedCode, onCopyCode }) {
                                             )}
                                             
                                             {/* Fallback if no evaluation config is set */}
-                                            {q.type !== "mcq" && !q.evaluationConfig?.referenceAnswer && (!q.evaluationConfig?.testCases || q.evaluationConfig?.testCases?.length === 0) && (
+                                            {q.type !== "mcq" && !q.evaluationConfig?.referenceAnswer && !q.evaluationConfig?.referenceImage && (!q.evaluationConfig?.testCases || q.evaluationConfig?.testCases?.length === 0) && (
                                                 <div className="flex items-center gap-2 text-amber-400/80 text-sm bg-amber-500/10 p-3 rounded-lg border border-amber-500/20">
                                                     <AlertCircle size={16} />
                                                     No evaluation rubric or test cases provided for this question.

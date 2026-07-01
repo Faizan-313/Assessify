@@ -1,7 +1,15 @@
 import toast from 'react-hot-toast';
 import { ImagePlus, FileImage, X, Check } from 'lucide-react';
 
-const ImageUploadComponent = ({ questions, setQuestions, index }) => {
+const ImageUploadComponent = ({
+    questions,
+    setQuestions,
+    index,
+    imageField = "image",
+    previewField = "imagePreview",
+    label = "Question Image",
+    emptyText = "No image uploaded",
+}) => {
 
     const getImageFileName = (img, index) => {
         if (!img) return "";
@@ -35,15 +43,15 @@ const ImageUploadComponent = ({ questions, setQuestions, index }) => {
 
             const previewUrl = URL.createObjectURL(file);
             const updatedQuestions = [...questions];
-            const prevPreview = updatedQuestions[index]?.imagePreview;
+            const prevPreview = updatedQuestions[index]?.[previewField];
             if (prevPreview && typeof prevPreview === 'string' && prevPreview.startsWith('blob:')) {
                 try { URL.revokeObjectURL(prevPreview); } catch { /* ignore */ }
             }
 
             updatedQuestions[index] = {
                 ...updatedQuestions[index],
-                image: file,
-                imagePreview: previewUrl
+                [imageField]: file,
+                [previewField]: previewUrl
             };
             setQuestions(updatedQuestions);
         }
@@ -51,14 +59,14 @@ const ImageUploadComponent = ({ questions, setQuestions, index }) => {
 
     const handleRemove = (index) => {
         const updatedQuestions = [...questions];
-        const prev = updatedQuestions[index]?.imagePreview;
+        const prev = updatedQuestions[index]?.[previewField];
         if (prev && typeof prev === 'string' && prev.startsWith('blob:')) {
             try { URL.revokeObjectURL(prev); } catch { /* ignore */ }
         }
         updatedQuestions[index] = {
             ...updatedQuestions[index],
-            image: null,
-            imagePreview: null
+            [imageField]: null,
+            [previewField]: null
         };
         setQuestions(updatedQuestions);
     };
@@ -66,22 +74,25 @@ const ImageUploadComponent = ({ questions, setQuestions, index }) => {
     const question = questions?.[index];
     if (!question) return null;
 
-    const sizeText = getImageSizeText(question.image);
+    const image = question[imageField];
+    const preview = question[previewField];
+    const sizeText = getImageSizeText(image);
+    const inputId = `${imageField}-fileUpload-${index}`;
 
     return (
         <div className="mb-4 rounded-xl bg-white/[0.03] border border-white/10 p-4">
             <label
-                htmlFor={`fileUpload-${index}`}
+                htmlFor={inputId}
                 className="flex items-center gap-2 text-xs font-semibold text-gray-300 mb-3 uppercase tracking-wider"
             >
                 <ImagePlus className="w-3.5 h-3.5 text-violet-400" />
-                Question Image
+                {label}
                 <span className="text-gray-500 normal-case font-normal tracking-normal">(optional)</span>
             </label>
 
             <input
                 type="file"
-                id={`fileUpload-${index}`}
+                id={inputId}
                 accept="image/*"
                 onChange={(e) => handleFileSelect(index, e)}
                 className="block w-full text-sm text-gray-400
@@ -93,11 +104,11 @@ const ImageUploadComponent = ({ questions, setQuestions, index }) => {
                     cursor-pointer"
             />
 
-            {question.imagePreview ? (
+            {preview ? (
                 <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-4">
                     <div className="flex items-start gap-4">
                         <img
-                            src={question.imagePreview}
+                            src={preview}
                             alt="Preview"
                             className="w-28 h-28 object-cover rounded-lg border border-white/10 shadow-lg"
                         />
@@ -106,8 +117,8 @@ const ImageUploadComponent = ({ questions, setQuestions, index }) => {
                                 <Check className="w-4 h-4" />
                                 Image Selected
                             </p>
-                            <p className="text-xs text-gray-300 truncate" title={getImageFileName(question.image, index)}>
-                                {getImageFileName(question.image, index)}
+                            <p className="text-xs text-gray-300 truncate" title={getImageFileName(image, index)}>
+                                {getImageFileName(image, index)}
                             </p>
                             {sizeText && (
                                 <p className="text-xs text-gray-500 mb-3">{sizeText}</p>
@@ -126,7 +137,7 @@ const ImageUploadComponent = ({ questions, setQuestions, index }) => {
             ) : (
                 <div className="mt-4 rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] p-6 text-center">
                     <FileImage className="w-10 h-10 text-violet-400/60 mx-auto mb-2" />
-                    <p className="text-sm text-gray-300 font-medium mb-0.5">No image uploaded</p>
+                    <p className="text-sm text-gray-300 font-medium mb-0.5">{emptyText}</p>
                     <p className="text-xs text-gray-500">Supported formats: JPG, PNG · Max 2MB</p>
                 </div>
             )}
