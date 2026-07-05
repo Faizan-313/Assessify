@@ -2,7 +2,6 @@ import { Violation } from "../models/violation.model.js";
 import { Exam } from "../models/exam.model.js";
 import { ExamSubmission } from "../models/examSubmission.model.js";
 import { submitExam } from "../controllers/exams.controller.js";
-import { emitMonitoringSnapshot } from "./monitoringSnapshot.js";
 
 export default function registerTeacherEvents(io, socket) {
     socket.on("teacher-action", async (payload) => {
@@ -92,7 +91,6 @@ export default function registerTeacherEvents(io, socket) {
 
             // Broadcast updated violations to all teachers in the exam room
             io.to(`exam_${examId}`).emit("violations-history", { violations: formatted });
-            await emitMonitoringSnapshot(io, examId);
 
             // emit action to the specific student's room
             io.to(`student_${studentId}`).emit("exam-action", { action, reason });

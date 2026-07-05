@@ -55,6 +55,7 @@ export default function MonitorExam() {
 
         s.on("connect", () => {
             setIsConnected(true);
+            setStudentViolations({});
             toast.success("Monitoring started!", { id: "sys-connect" });
             s.emit("joinRoom", { room: `exam_${examId}` });
             s.emit("fetch-violations", { examId });
@@ -74,7 +75,7 @@ export default function MonitorExam() {
             if (!data.violations || !Array.isArray(data.violations)) return;
 
             setStudentViolations((prev) => {
-                const next = { ...prev };
+                const next = {};
 
                 data.violations.forEach((doc) => {
                     const existing = prev[doc.studentId];
@@ -91,6 +92,12 @@ export default function MonitorExam() {
                         timeLeft: existing?.timeLeft,
                         lastHeartbeat: existing?.lastHeartbeat,
                     };
+                });
+
+                Object.entries(prev).forEach(([studentId, existing]) => {
+                    if (!next[studentId]) {
+                        next[studentId] = existing;
+                    }
                 });
 
                 return next;
