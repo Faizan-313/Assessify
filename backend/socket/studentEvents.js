@@ -1,6 +1,7 @@
 import { Violation } from "../models/violation.model.js";
 import { ExamSubmission } from "../models/examSubmission.model.js";
 import { Exam } from "../models/exam.model.js";
+import { emitMonitoringSnapshot } from "./monitoringSnapshot.js";
 
 const endTimers = new Map();
 
@@ -163,6 +164,7 @@ export default function registerStudentEvents(io, socket) {
             };
             
             io.to(`exam_${examId}`).emit("student-submitted", broadcastData);
+            await emitMonitoringSnapshot(io, examId);
             
         } catch (err) {
             console.error("Error handling student submission:", err);
