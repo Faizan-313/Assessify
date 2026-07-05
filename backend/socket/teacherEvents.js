@@ -75,6 +75,8 @@ export default function registerTeacherEvents(io, socket) {
             const formatted = exam.students.map(student => {
                 const studentIdStr = student._id.toString();
                 const violation = violationsMap[studentIdStr];
+                const hasSubmission = submittedSet.has(studentIdStr);
+                const resolvedStatus = hasSubmission ? "submitted" : (violation?.status || "active");
 
                 return {
                     studentId: studentIdStr,
@@ -85,7 +87,7 @@ export default function registerTeacherEvents(io, socket) {
                         batch: student.batch,
                     },
                     violations: violation?.violations || [],
-                    status: violation?.status || (submittedSet.has(studentIdStr) ? "submitted" : "active"),
+                    status: resolvedStatus,
                 };
             });
 
@@ -138,6 +140,8 @@ export default function registerTeacherEvents(io, socket) {
             const formatted = exam.students.map(student => {
                 const studentIdStr = student._id.toString();
                 const violation = violationsMap[studentIdStr];
+                const hasSubmission = submittedSet.has(studentIdStr);
+                const resolvedStatus = hasSubmission ? "submitted" : (violation?.status || "active");
 
                 return {
                     studentId: studentIdStr,
@@ -148,7 +152,7 @@ export default function registerTeacherEvents(io, socket) {
                         batch: student.batch,
                     },
                     violations: violation?.violations || [],
-                    status: violation?.status || (submittedSet.has(studentIdStr) ? "submitted" : "active"),
+                    status: resolvedStatus,
                 };
             });
 
