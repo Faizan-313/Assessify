@@ -15,10 +15,6 @@ export const PITCH_DOWN_THRESHOLD = 0.09; // looking down (notes/keyboard)
 export const GAZE_X_THRESHOLD = 0.12;     // was 0.07
 export const GAZE_Y_THRESHOLD = 0.06;     // was 0.04
 
-// Phone detection — how often (ms) we run the object detector, and the minimum model confidence to accept a "cell phone" detection.
-export const PHONE_DETECT_INTERVAL_MS = 500;
-export const PHONE_CONFIDENCE = 0.4;
-
 // MediaPipe FaceMesh key landmark indices we use.
 export const LM = {
   noseTip: 1,
@@ -53,5 +49,4 @@ export const ANOMALY_MESSAGES = {
   gaze_right: "Looking right",
   gaze_up: "Looking up",
   gaze_down: "Looking down",
-  phone_detected: "Mobile phone detected",
 };

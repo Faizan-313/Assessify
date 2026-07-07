@@ -3,18 +3,16 @@ import { AnomalyTracker } from "./AnomalyTracker.js";
 import { computeHeadPose } from "./headPose.js";
 import { computeGaze } from "./gaze.js";
 import { classifyHead, classifyGaze } from "./classifiers.js";
-import { loadPhoneModel, detectPhone } from "./phoneDetector.js";
-import { loadFaceMesh } from "./loadFaceMesh.js";
+import { getFaceMesh } from "./loadFaceMesh.js";
 import {
   ANOMALY_MESSAGES,
   DEFAULT_PERSIST_MS,
   CALIBRATION_MS,
-  PHONE_DETECT_INTERVAL_MS,
 } from "./constants.js";
 
 /**
  * Flow:
- *   1. phase = "initializing" — loading the phone detector model.
+ *   1. phase = "initializing" — loading the FaceMesh model.
  *   2. phase = "calibrating"  — sampling the user's neutral pose for CALIBRATION_MS.
  *   3. phase = "monitoring"   — firing anomalies relative to the baseline.
  *
@@ -24,7 +22,7 @@ import {
  * @returns {{
  *   webcamRef: React.RefObject,
  *   phase: "initializing" | "calibrating" | "monitoring",
- *   status: { faces, head, gaze, yaw, pitch, roll, phone },
+ *   status: { faces, head, gaze, yaw, pitch, roll },
  *   anomalies: Array<{id,key,message,startTime,endTime?,durationMs?}>
  * }}
  */
@@ -36,14 +34,12 @@ export function useProctoring({
 } = {}) {
   const webcamRef = useRef(null);
   const rafRef = useRef(null);
-  const phoneIntervalRef = useRef(null);
   const faceMeshRef = useRef(null);
   const trackerRef = useRef(null);
 
   // Calibration state — held in a ref so the render loop has live access
   const baselineRef = useRef(null);
-  const calibStateRef = useRef(null); 
-  const phoneActiveRef = useRef(false);
+  const calibStateRef = useRef(null);
 
   const [phase, setPhase] = useState("initializing");
   const statusRef = useRef({
@@ -53,7 +49,6 @@ export function useProctoring({
     yaw: 0,
     pitch: 0,
     roll: 0,
-    phone: false,
   });
   const [anomalies, setAnomalies] = useState([]);
 
@@ -138,7 +133,6 @@ export function useProctoring({
           yaw: pose.yaw,
           pitch: pose.pitch,
           roll: pose.roll,
-          phone: phoneActiveRef.current,
         };
         return;
       }
@@ -147,7 +141,6 @@ export function useProctoring({
       const active = new Set();
       if (faceCount === 0) active.add("no_face");
       if (faceCount > 1) active.add("multiple_faces");
-      if (phoneActiveRef.current) active.add("phone_detected");
 
       let headState = null;
       let gazeState = null;
@@ -167,7 +160,6 @@ export function useProctoring({
         yaw: pose.yaw,
         pitch: pose.pitch,
         roll: pose.roll,
-        phone: phoneActiveRef.current,
       };
     };
 
@@ -193,19 +185,16 @@ export function useProctoring({
       if (!cancelled) rafRef.current = requestAnimationFrame(loop);
     };
 
-    //Main detection loop
+    // Main detection loop
     (async () => {
-      let FaceMeshCtor;
       try {
-        FaceMeshCtor = await loadFaceMesh();
+        faceMesh = await getFaceMesh();
       } catch {
-        // console.error("[useProctoring] FaceMesh script failed to load:", err);
         return;
       }
-      if (cancelled) return;
+      if (cancelled || !faceMesh) return;
 
-      faceMesh = new FaceMeshCtor({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,});
+      faceMesh.reset?.();
       faceMesh.setOptions({
         maxNumFaces: 5,
         refineLandmarks: true,
@@ -214,24 +203,7 @@ export function useProctoring({
       });
       faceMesh.onResults(handleResults);
       faceMeshRef.current = faceMesh;
-
-      // Phone detection (separate, slower loop)
-      try {
-        const model = await loadPhoneModel();
-        if (cancelled) return;
-        
-        // Signal that initialization is done; main loop will move us to "calibrating".
-        setPhase((p) => (p === "initializing" ? "calibrating" : p));
-        phoneIntervalRef.current = setInterval(async () => {
-          const video = webcamRef.current?.video;
-          const detected = await detectPhone(model, video);
-          phoneActiveRef.current = detected;
-        }, PHONE_DETECT_INTERVAL_MS);
-      } catch {
-        // console.error("[useProctoring] phone model failed to load:", err);
-        // Continue without phone detection rather than blocking the session.
-        setPhase((p) => (p === "initializing" ? "calibrating" : p));
-      }
+      setPhase((p) => (p === "initializing" ? "calibrating" : p));
 
       if (!cancelled) loop();
     })();
@@ -239,17 +211,11 @@ export function useProctoring({
     return () => {
       cancelled = true;
       cancelAnimationFrame(rafRef.current);
-      if (phoneIntervalRef.current) {
-        clearInterval(phoneIntervalRef.current);
-        phoneIntervalRef.current = null;
-      }
       tracker?.flush();
-      faceMesh?.close?.();
       faceMeshRef.current = null;
       trackerRef.current = null;
       baselineRef.current = null;
       calibStateRef.current = null;
-      phoneActiveRef.current = false;
     };
   }, [enabled, persistMs]);
 

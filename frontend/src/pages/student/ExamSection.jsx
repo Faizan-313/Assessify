@@ -26,11 +26,11 @@ function ExamSection() {
     const [timeLeft, setTimeLeft] = useState(0);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [violations, setViolations] = useState([]);
-    const [devToolsOpen, setDevToolsOpen] = useState(false);
     const [examPaused, setExamPaused] = useState(false);
     const [pauseReason, setPauseReason] = useState(null);
     const [needsFullscreen, setNeedsFullscreen] = useState(false);
     const [timerReady, setTimerReady] = useState(false);
+    const devToolsOpenRef = useRef(false);
     
     // NEW STATE: Control for the submission confirmation dialog
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -458,29 +458,26 @@ function ExamSection() {
             const widthThreshold = window.outerWidth - window.innerWidth > threshold;
             const heightThreshold = window.outerHeight - window.innerHeight > threshold;
             const orientation = widthThreshold ? "vertical" : "horizontal";
+            const isOpen =
+                (window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) ||
+                widthThreshold ||
+                heightThreshold;
 
-            if (
-                !(heightThreshold && widthThreshold) &&
-                (
-                    (window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) ||
-                    widthThreshold ||
-                    heightThreshold
-                )
-            ) {
-                if (!devToolsOpen) {
+            if (isOpen) {
+                if (!devToolsOpenRef.current) {
                     const recorded = recordProctoringSignal(
                         {
                             type: "DEVTOOLS_OPENED",
                             timestamp: new Date().toISOString(),
                             message: `Developer tools opened (${orientation})`,
-                            orientation
+                            orientation,
                         },
                         "Developer tools detected! This is a serious violation."
                     );
-                    if (recorded) setDevToolsOpen(true);
+                    if (recorded) devToolsOpenRef.current = true;
                 }
-            } else {
-                setDevToolsOpen(false);
+            } else if (devToolsOpenRef.current) {
+                devToolsOpenRef.current = false;
             }
         };
 
@@ -527,7 +524,7 @@ function ExamSection() {
             document.removeEventListener("contextmenu", handleContextMenu);
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [isSubmitted, examPaused, devToolsOpen, recordProctoringSignal]);
+    }, [isSubmitted, examPaused, recordProctoringSignal]);
 
     // Silent block: copy / cut / paste and screenshot-ish shortcuts 
     useLayoutEffect(() => {

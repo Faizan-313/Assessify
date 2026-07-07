@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
 import { useParams, useNavigate } from "react-router-dom";
-import { AlertTriangle, Loader2, User, Clock, Shield, XCircle, ChevronDown, ChevronUp, Eye, Users, Smartphone, UserX, Search } from "lucide-react";
+import { AlertTriangle, Loader2, User, Clock, Shield, XCircle, ChevronDown, ChevronUp, Eye, Users, UserX, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import ReasonWindow from "./components/PauseReasonWindow";
 import { useExam } from "../../context/ExamContextCore";
@@ -327,8 +327,6 @@ export default function MonitorExam() {
                 return <UserX className="w-4 h-4" />;
             case "AI_MULTIPLE_FACES":
                 return <Users className="w-4 h-4" />;
-            case "AI_PHONE_DETECTED":
-                return <Smartphone className="w-4 h-4" />;
             case "AI_HEAD_LEFT":
             case "AI_HEAD_RIGHT":
             case "AI_HEAD_UP":
@@ -346,7 +344,6 @@ export default function MonitorExam() {
     const getViolationColor = (type) => {
         switch (type) {
             case "DEVTOOLS_OPENED":
-            case "AI_PHONE_DETECTED":
             case "AI_MULTIPLE_FACES":
                 return "text-red-600 dark:text-red-400";
             case "TAB_SWITCH":

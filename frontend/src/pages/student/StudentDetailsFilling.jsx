@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useExam } from '../../context/ExamContextCore'
 import { useProctoringCtx } from '../../context/proctoringContextCore'
+import { initializeFaceMesh } from '../../features/ai-monitoring/loadFaceMesh.js'
 import toast from 'react-hot-toast'
 import { User, Hash, Calendar, Users, Clock, FileText, Target, Award, AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -36,6 +37,10 @@ const StudentDetailsFilling = () => {
     useEffect(() => {
         stop();
     }, [stop]);
+
+    useEffect(() => {
+        initializeFaceMesh().catch(() => undefined);
+    }, []);
 
     // After registration succeeds, calibrate; only then enter the exam (never navigate before details API finishes).
     useEffect(() => {
