@@ -4,7 +4,7 @@
 export const DEFAULT_PERSIST_MS = 1500;
 
 // How long we sample the neutral pose at session start before switching to monitoring.
-export const CALIBRATION_MS = 1500;
+export const CALIBRATION_MS = 1000;
 
 // Head-pose thresholds. These are applied AFTER baseline subtraction.
 export const YAW_THRESHOLD = 0.16;        //deg of head rotation
@@ -16,8 +16,8 @@ export const GAZE_X_THRESHOLD = 0.12;     // was 0.07
 export const GAZE_Y_THRESHOLD = 0.06;     // was 0.04
 
 // Phone detection — how often (ms) we run the object detector, and the minimum model confidence to accept a "cell phone" detection.
-export const PHONE_DETECT_INTERVAL_MS = 600;
-export const PHONE_CONFIDENCE = 0.5;
+export const PHONE_DETECT_INTERVAL_MS = 500;
+export const PHONE_CONFIDENCE = 0.4;
 
 // MediaPipe FaceMesh key landmark indices we use.
 export const LM = {
