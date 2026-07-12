@@ -6,7 +6,7 @@ const authenticateToken = (req, res, next) => {
         if (!token) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, { algorithm: "HS256" });
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, { algorithms: ["HS256"] });
         req.user = decodedToken;
         next();
     } catch (error) {
