@@ -126,10 +126,12 @@ EMAIL_PASS=
 #for local evalution with docker
 TEXT_GRADING_MICROSERVICE_URL=
 CODE_GRADING_MICROSERVICE_URL=
+DIAGRAM_GRADING_MICROSERVICE_URL=http://127.0.0.1:8001
 
 #for gemini evaluation
 GEMINI_API_KEY=
 GEMINI_GRADER_MODEL=
+GEMINI_DIAGRAM_EVALUATION_KEY=
 
 SYSTEM_PROMPT_TEXT=
 SYSTEM_PROMPT_CODE=
@@ -164,6 +166,7 @@ The evaluation system is designed with two separate execution strategies dependi
 Uses a dedicated Evaluation Microservice for code execution, test case validation, and text evaluation.
 ### Production Mode:
 Uses Google Gemini (LLM-based evaluation) for intelligent assessment of both code quality and textual explanations.
+Diagram questions use this same production Gemini flow. In local development, they use the diagram-evaluation microservice, which decodes the submitted data URL into an image before sending it to Gemini.
 
 ### Evaluation Flow
 Student submits an answer (code / text / mixed format)

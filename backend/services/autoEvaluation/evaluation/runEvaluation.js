@@ -5,7 +5,7 @@ import clampMarks from "../helpers/clampMarks.js";
 import scoreMcqQuestion from "./mcq.evaluation.js";
 import sleep from "../helpers/sleep.js";
 import { GEMINI_REQUEST_DELAY_MS } from "../constants.js";
-import { evaluateDiagramAnswer } from "./gemini/diagram.gemini.evaluation.js";
+import evaluateDiagramAnswer from "./controller/diagram.evaluation.controller.js";
 
 function mcqHasAnswerKey(question) {
     const raw = question.evaluationConfig?.correctOption;
@@ -104,20 +104,19 @@ async function runAutoEvaluationJob({ examId, questionPaper }) {
                     continue;
                 }
 
-                //sepearte gemini for the diagram evaluation (it will run in both local and production env)
-                if(ans.questionType === "diagram"){
+                if (ans.questionType === "diagram") {
                     const imageInText = ans.answerText;
 
                     const { status, marksObtained, feedback } = await evaluateDiagramAnswer({
                         question: q,
                         answerDiagram: imageInText
-                    }) 
+                    });
                     
                     if (imageInText && GEMINI_REQUEST_DELAY_MS > 0) {
                         await sleep(GEMINI_REQUEST_DELAY_MS);
                     }
 
-                    if(status == "error"){
+                    if (status === "error") {
                         needsManualReview = true;
                         updatedAnswers.push({ ...ans, marksObtained: ans.marksObtained ?? 0 });
                         continue;

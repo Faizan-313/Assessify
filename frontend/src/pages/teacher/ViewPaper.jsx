@@ -3,15 +3,16 @@ import {
     ArrowLeft, Save, Loader2,
     MessageSquare, AlertCircle, FileText, Image as ImageIcon,
     AlertTriangle, Monitor, MousePointer, Keyboard, Maximize, Eye,
-    ChevronDown, ChevronUp
+    ChevronDown, ChevronUp, CheckCircle2, Terminal, EyeOff
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { apiCall } from "../../api/api";
-import { useExam } from "../../context/ExamContextCore";
+import { apiCall } from "../../api/api.js";
+import { useExam } from "../../context/ExamContextCore.js";
 import MarksInput from "./components/MarksInput.jsx";
-import { getSubmissionStatusLabel } from "../../utils/submissionEvaluateStatus";
-import { TeacherPageShell, teacherCardClass, teacherInputClass } from "./components/TeacherPageShell";
+import { getSubmissionStatusLabel } from "../../utils/submissionEvaluateStatus.js";
+import { TeacherPageShell, teacherCardClass, teacherInputClass } from "./components/TeacherPageShell.jsx";
+import ReferenceAnswerCard from "./components/ReferenceAnswerCard.jsx";
 
 // Utility Functions
 const sanitizeAndFormatAnswer = (answer) => {
@@ -79,6 +80,28 @@ const getViolationColor = (type) => {
     return colorMap[normalizedType] || "bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-300 border-gray-200 dark:border-gray-700";
 };
 
+const questionHasReferenceContent = (question) => {
+    const config = question?.evaluationConfig || {};
+
+    if (question.type === "text" || question.type === "diagram") {
+        return Boolean(config.referenceAnswer?.trim() || config.referenceImage);
+    }
+
+    if (question.type === "mcq") {
+        return (
+            config.correctOption !== undefined
+            && config.correctOption !== null
+            && question.options?.length > 0
+        );
+    }
+
+    if (question.type === "code") {
+        return config.testCases?.length > 0;
+    }
+
+    return false;
+};
+
 // API Function
 const fetchStudent = async (studentId) => {
     try {
@@ -110,6 +133,7 @@ function ViewPaper() {
     const [downloadingPaper, setDownloadingPaper] = useState(false);
     const [localExamAttempt, setLocalExamAttempt] = useState(null);
     const [showViolations, setShowViolations] = useState(false);
+    const [showReferenceAnswers, setShowReferenceAnswers] = useState(false);
     const [loading, setLoading] = useState(true);
 
     const exam = particularExamDetails;
@@ -139,6 +163,11 @@ function ViewPaper() {
             0
         );
     }, [localExamAttempt]);
+
+    const hasAnyReferenceContent = useMemo(
+        () => exam?.questions?.some(questionHasReferenceContent) ?? false,
+        [exam?.questions]
+    );
 
     // Load Data Effect
     useEffect(() => {
@@ -288,13 +317,13 @@ function ViewPaper() {
     const canDownloadPaper = localExamAttempt?.evaluateStatus && ["AutoEvaluated", "Evaluated"].includes(localExamAttempt.evaluateStatus);
 
     // Render Functions
-    const renderAiGraderNote = (studentAnswer) => {
+    const renderGraderNote = (studentAnswer) => {
         const text = studentAnswer?.aiFeedback?.trim();
         if (!text) return null;
         return (
             <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/90 dark:bg-violet-950/35 px-3 py-2 text-sm text-gray-800 dark:text-gray-200 mb-3">
                 <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1 uppercase tracking-wide">
-                    AI grading feedback
+                    Feedback
                 </p>
                 <p className="leading-relaxed whitespace-pre-wrap">{text}</p>
             </div>
@@ -311,7 +340,7 @@ function ViewPaper() {
                         <FileText className="w-4 h-4" />
                         No answer provided
                     </p>
-                    {renderAiGraderNote(studentAnswer)}
+                    {renderGraderNote(studentAnswer)}
                     <MarksInput
                         question={question}
                         studentAnswer={studentAnswer}
@@ -328,7 +357,7 @@ function ViewPaper() {
                         STUDENT'S DIAGRAM
                     </p>
                     {studentAnswer.answerText?.startsWith("data:image") ? (
-                        <div className="max-h-[70vh] overflow-auto rounded-lg border border-gray-300 dark:border-gray-600 bg-white p-2">
+                        <div className="max-h-[50vh] overflow-auto rounded-lg border border-gray-300 dark:border-gray-600 bg-white p-2">
                             <img
                                 src={studentAnswer.answerText}
                                 alt="Student's diagram"
@@ -341,7 +370,7 @@ function ViewPaper() {
                             <p className="text-sm text-gray-500 dark:text-gray-400 ml-2">Diagram image</p>
                         </div>
                     )}
-                    {renderAiGraderNote(studentAnswer)}
+                    {renderGraderNote(studentAnswer)}
                     <MarksInput
                         question={question}
                         studentAnswer={studentAnswer}
@@ -389,7 +418,7 @@ function ViewPaper() {
                             </div>
                         </div>
                     )}
-                    {renderAiGraderNote(studentAnswer)}
+                    {renderGraderNote(studentAnswer)}
                     <MarksInput
                         question={question}
                         studentAnswer={studentAnswer}
@@ -412,7 +441,7 @@ function ViewPaper() {
                 <pre className="text-white border border-gray-300 dark:border-gray-600 p-3 rounded-lg text-sm dark:bg-gray-950 bg-white leading-relaxed whitespace-pre-wrap break-words font-mono overflow-auto max-h-96">
                     {sanitizeAndFormatAnswer(studentAnswer.answerText)}
                 </pre>
-                {renderAiGraderNote(studentAnswer)}
+                {renderGraderNote(studentAnswer)}
                 <MarksInput
                     question={question}
                     studentAnswer={studentAnswer}
@@ -530,9 +559,31 @@ function ViewPaper() {
 
                         {/* Questions & Answers Card */}
                         <div className="bg-gradient-to-b from-white/[0.04] to-white/[0.01] border border-white/10 rounded-2xl p-6">
-                            <h2 className="text-xl font-bold text-white mb-6">
-                                Questions & Answers
-                            </h2>
+                            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <h2 className="text-xl font-bold text-white">
+                                    Questions & Answers
+                                </h2>
+                                {hasAnyReferenceContent && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowReferenceAnswers((prev) => !prev)}
+                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/20"
+                                        aria-pressed={showReferenceAnswers}
+                                    >
+                                        {showReferenceAnswers ? (
+                                            <>
+                                                <EyeOff className="h-4 w-4" />
+                                                Hide Reference Answers
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Eye className="h-4 w-4" />
+                                                Show Reference Answers
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
 
                             {exam.questions?.length > 0 ? (
                                 <div className="space-y-6">
@@ -570,18 +621,9 @@ function ViewPaper() {
                                                             />
                                                         </div>
                                                     )}
-                                                    {question.type === "diagram" && question.evaluationConfig?.referenceImage && (
-                                                        <div className="mt-3">
-                                                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-violet-300">
-                                                                Reference Diagram
-                                                            </p>
-                                                            <div className="max-h-[70vh] overflow-auto rounded-lg border border-violet-500/30 bg-white p-2">
-                                                                <img
-                                                                    className="block h-auto max-w-none"
-                                                                    src={question.evaluationConfig.referenceImage}
-                                                                    alt="Reference diagram"
-                                                                />
-                                                            </div>
+                                                    {showReferenceAnswers && questionHasReferenceContent(question) && (
+                                                        <div className="mt-3 space-y-3">
+                                                            {ReferenceAnswerCard(question)}
                                                         </div>
                                                     )}
                                                 </div>

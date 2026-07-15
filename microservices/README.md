@@ -4,7 +4,7 @@ This repository contains the evaluation microservices used in the Student Assess
 
 ## Overview
 
-The project consists of two independent evaluation services:
+The project consists of three independent evaluation services:
 
 ### 1. Text Evaluation Service
 
@@ -13,6 +13,10 @@ Evaluates descriptive answers submitted by students by comparing them with model
 ### 2. Code Evaluation Service
 
 Compiles and executes programming solutions against predefined test cases and calculates scores based on passed test cases.
+
+### 3. Diagram Evaluation Service
+
+Uses Gemini vision to grade a diagram answer. The service turns the submitted data URL or raw base64 into an image before sending it to Gemini.
 
 ## Features
 
@@ -166,6 +170,20 @@ evaluation-services/
 
 ## Running the Services
 
+### Diagram Evaluation Service
+
+Set `GEMINI_API_KEY` and `GEMINI_GRADER_MODEL` (or their diagram-specific equivalents), then run:
+
+```bash
+cd diagram-evaluation
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app:app --host 127.0.0.1 --port 8001
+```
+
+The backend calls `POST /diagram-evaluate` with `{ "question": { ... }, "answerDiagram": "data:image/png;base64,..." }`.
+
 ### Install Dependencies
 
 ```bash
@@ -193,7 +211,7 @@ cd ../code-evaluation
 Run the container:
 
 ```bash
-docker run -p <port:port> code-runner
+docker run -p port:port code-runner
 ```
 
 ## Note

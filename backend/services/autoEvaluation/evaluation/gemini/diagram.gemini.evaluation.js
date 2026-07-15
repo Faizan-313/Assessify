@@ -9,9 +9,9 @@ let geminiAi = null;
 function getGeminiAi() {
     if (geminiAi) return geminiAi;
 
-    const apiKey = process.env.GEMINI_DIAGRAM_EVALUATION_KEY;
+    const apiKey = process.env.GEMINI_DIAGRAM_EVALUATION_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        throw new Error("GEMINI_DIAGRAM_EVALUATION_KEY is not configured");
+        throw new Error("GEMINI_API_KEY or GEMINI_DIAGRAM_EVALUATION_KEY is not configured");
     }
 
     geminiAi = new GoogleGenerativeAI(apiKey);
@@ -52,6 +52,7 @@ async function urlToInlineImagePart(url) {
 
 export const evaluateDiagramAnswer = async ({ question, answerDiagram }) => {
     const maxMarks = Number(question?.marks) || 0;
+    const qid = question?._id != null ? String(question._id) : "?";
 
     if (!answerDiagram || String(answerDiagram).trim().length === 0) {
         return {
@@ -109,8 +110,6 @@ export const evaluateDiagramAnswer = async ({ question, answerDiagram }) => {
         return { status: "error", marksObtained: 0 };
     }
     const raw = response?.response?.text() ?? "";
-    const qid = question?._id != null ? String(question._id) : "?";
-
     let parsed;
     try {
         parsed = JSON.parse(raw);

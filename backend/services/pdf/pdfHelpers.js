@@ -1,6 +1,9 @@
-const MARGIN       = 60;
-const PAGE_WIDTH   = 595.28;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
+import axios from "axios";
+
+const MARGIN        = 50;
+const PAGE_WIDTH    = 595.28;   // A4
+const PAGE_HEIGHT   = 841.89;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 3;
 
 const C = {
     black:      "#1a1a1a",
@@ -12,6 +15,10 @@ const C = {
     codeBg:     "#f7f7f7",
     codeBorder: "#d0d0d0",
     codeText:   "#1a1a1a",
+    headerBg:    "#f5f5f5",
+    markFull:    "#2e7d32",   // green  — full marks
+    markPartial: "#e65100",   // amber  — partial
+    markZero:    "#c62828",   // red    — zero
 };
 
 function addHorizontalLine(doc, y, { color = C.rule, weight = 0.5 } = {}) {
@@ -52,32 +59,39 @@ function isBase64Image(str) {
 }
 
 // Image Renderer
-function renderImage(doc, imageData, options = {}) {
-    if (!imageData || typeof imageData !== "string") return false;
-
+async function renderImage(doc, imageData, options = {}) {
+    if (!imageData || typeof imageData !== "string")
+        return false;
     try {
         let imgBuffer;
-
         if (imageData.startsWith("data:image/")) {
-            const match = imageData.match(/^data:image\/\w+;base64,(.+)$/);
-            if (match) imgBuffer = Buffer.from(match[1], "base64");
-        } else if (imageData.startsWith("http")) {
-            // External URLs are not supported in this rendering context.
-            return false;
-        } else {
+            const match = imageData.match(
+                /^data:image\/\w+;base64,(.+)$/
+            );
+            if (match)
+                imgBuffer = Buffer.from(match[1], "base64");
+        }
+        else if (imageData.startsWith("http")) {
+            const response = await axios.get(imageData, {
+                responseType: "arraybuffer",
+            });
+            imgBuffer = Buffer.from(response.data);
+        }
+        else {
             imgBuffer = Buffer.from(imageData, "base64");
         }
-
-        if (imgBuffer) {
-            const defaults = { fit: [CONTENT_WIDTH, 300], align: "center" };
-            doc.image(imgBuffer, { ...defaults, ...options });
-            return true;
-        }
-    } catch {
+        if (!imgBuffer)
+            return false;
+        doc.image(imgBuffer, {
+            fit: [CONTENT_WIDTH, 300],
+            align: "center",
+            ...options,
+        });
+        return true;
+    } catch (err) {
+        console.error("Image render failed:", err.message);
         return false;
     }
-
-    return false;
 }
 
 //Code Block Renderer 
@@ -113,7 +127,6 @@ function formatCodeBlock(doc, code) {
     });
 
     // Advance cursor past the block
-    doc.y = startY + lines.length * lineHeight + paddingV;
     doc.moveDown(0.6);
 
     // Restore body styles
@@ -125,7 +138,12 @@ function formatCodeBlock(doc, code) {
 export {
     addHorizontalLine,
     addSectionBox,
+    C,
     isBase64Image,
     renderImage,
+    MARGIN,
+    PAGE_HEIGHT,
+    PAGE_WIDTH,
+    CONTENT_WIDTH,
     formatCodeBlock,
 };

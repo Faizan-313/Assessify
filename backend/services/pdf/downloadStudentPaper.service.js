@@ -5,27 +5,12 @@ import {
     isBase64Image,
     renderImage,
     formatCodeBlock,
+    C,
+    MARGIN,
+    PAGE_HEIGHT,
+    PAGE_WIDTH,
+    CONTENT_WIDTH
 } from "./pdfHelpers.js";
-
-// Layout Constants
-const MARGIN        = 60;
-const PAGE_WIDTH    = 595.28;   // A4
-const PAGE_HEIGHT   = 841.89;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-
-// Colour Palette
-const C = {
-    black:       "#1a1a1a",
-    darkGray:    "#333333",
-    midGray:     "#555555",
-    lightGray:   "#888888",
-    rule:        "#cccccc",
-    ruleLight:   "#e8e8e8",
-    headerBg:    "#f5f5f5",
-    markFull:    "#2e7d32",   // green  — full marks
-    markPartial: "#e65100",   // amber  — partial
-    markZero:    "#c62828",   // red    — zero
-};
 
 //Helpers 
 function hRule(doc, y, { color = C.rule, weight = 0.5 } = {}) {
@@ -114,11 +99,11 @@ async function streamStudentPaperPdf({ examId, studentId, userId }, res) {
 
     const doc = new PDFDocument({ margin: MARGIN, size: "A4", bufferPages: true });
     doc.pipe(res);
-    renderStudentPaperPdf(doc, exam, submission);
+    await renderStudentPaperPdf(doc, exam, submission);
     doc.end();
 }
 
-function renderStudentPaperPdf(doc, exam, submission) {
+async function renderStudentPaperPdf(doc, exam, submission) {
     const student = submission.studentId || {};
 
     // Cover / Header
@@ -275,8 +260,8 @@ function renderStudentPaperPdf(doc, exam, submission) {
         doc.moveDown(0.5);
 
         // Question text / image 
-        if (question.questionImage) {
-            renderImage(doc, question.questionImage, { fit: [CONTENT_WIDTH, 280] });
+        if (question.image) {
+            renderImage(doc, question.image, { fit: [CONTENT_WIDTH, 300] });
             doc.moveDown(0.6);
         }
 

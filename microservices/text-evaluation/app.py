@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer, util
 
-app = FastAPI()
+app = FastAPI(title="Text Evaluation Service")
 
 print("Loading text model...")
 model = SentenceTransformer("all-MiniLM-L6-v2")
